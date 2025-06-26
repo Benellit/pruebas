@@ -1,5 +1,5 @@
 const express = require('express');
-const { obtenerUsuarios, crearUsuario } = require('../controllers/usuariosController');
+const { obtenerUsuarios, crearUsuario } = require('../Connection/Controllers-LogicaComponentes/usuariosController');
 const router = express.Router();
 
 router.get('/', obtenerUsuarios);
