@@ -1,10 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Alert, TouchableOpacity, Text } from 'react-native';
-import CustomMap from '../components/MapComponents/CustomMap';
-import { MapMarkers } from '../components/MapComponents/MapMarkers';
-import { RoutePolyline } from '../components/MapComponents/RoutePolyline';
-import { watchLocation, watchHeading } from '../services/locationService';
-import { fetchRoute } from '../services/routeService';
+import CustomMap from '../../components/MapComponents/CustomMap';
+import { MapMarkers } from '../../components/MapComponents/MapMarkers';
+import { RoutePolyline } from '../../components/MapComponents/RoutePolyline';
+import { watchLocation, watchHeading } from '../../services/locationService';
+import { fetchRoute } from '../../services/routeService';
 
 export default function MapScreen() {
   const [markers, setMarkers] = useState([]);

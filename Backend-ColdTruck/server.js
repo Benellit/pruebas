@@ -11,7 +11,7 @@ app.use(express.json());
 conectarDB();
 
 // Rutas
-app.use('/users', require('./routes/usuarios'));
+app.use('/users', require('./routes-Endpoints/usuarios'));
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`🚀 Servidor en puerto ${PORT}`));
