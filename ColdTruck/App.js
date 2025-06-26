@@ -29,7 +29,7 @@ import AdminTrucksScreen from './src/screens/administrator/trucks';
 import AdminDriverScreen from './src/screens/administrator/users';
 
   // test
-import MapScreen from './src/tests/mapScreen';
+import MapScreen from './src/screens/shared/mapScreen';
 
 
 const Tab = createBottomTabNavigator();
