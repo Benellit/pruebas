@@ -1,5 +1,5 @@
 // src/services/routeService.js
-const apiKey = 'TU_API_KEY';
+const apiKey = '5b3ce3597851110001cf62486b568c6b7213474cb53c4d52de715431';
 
 export const fetchRoute = async (start, end) => {
   try {

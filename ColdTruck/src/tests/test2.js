@@ -41,7 +41,7 @@ const test2Screen = () => {
             const data = await res.json();
 
             if (res.ok) {
-                Alert.alert('✅ Usuario agregado');
+                Alert.alert(' Usuario agregado');
                 setUsername('');
                 obtenerUsuarios();
             } else {

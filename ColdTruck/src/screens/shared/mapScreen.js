@@ -1,10 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Alert, TouchableOpacity, Text } from 'react-native';
 import CustomMap from '../../components/MapComponents/CustomMap';
+import { MaterialIcons } from '@expo/vector-icons';
+import { Marker } from 'react-native-maps';
 import { MapMarkers } from '../../components/MapComponents/MapMarkers';
 import { RoutePolyline } from '../../components/MapComponents/RoutePolyline';
 import { watchLocation, watchHeading } from '../../services/locationService';
 import { fetchRoute } from '../../services/routeService';
+import styles from './mapStyles';
 
 export default function MapScreen() {
   const [markers, setMarkers] = useState([]);
@@ -54,20 +57,25 @@ export default function MapScreen() {
     setNavigationMode(false);
   };
 
-  return (
-    <View style={{ flex: 1 }}>
-      <CustomMap ref={mapRef} onPress={handleMapPress}>
-        <MapMarkers markers={markers} />
-        {route.length > 0 && <RoutePolyline route={route} />}
-      </CustomMap>
+return (
+  <View style={styles.container}>
+    <CustomMap ref={mapRef} onPress={handleMapPress} style={styles.map}>
+      <MapMarkers markers={markers} />
+      {route.length > 0 && <RoutePolyline route={route} />}
+    </CustomMap>
 
-      <TouchableOpacity onPress={handleCreateRoute} style={{ position: 'absolute', bottom: 80, left: 20 }}>
-        <Text>Crear Ruta</Text>
+    <View style={styles.buttons}>
+      <TouchableOpacity onPress={handleCreateRoute} style={styles.btnCreate}>
+        <MaterialIcons name="add-road" size={24} color="white" />
       </TouchableOpacity>
 
-      <TouchableOpacity onPress={resetMap} style={{ position: 'absolute', bottom: 20, left: 20 }}>
-        <Text>Resetear</Text>
+      <TouchableOpacity onPress={resetMap} style={styles.btnReset}>
+        <MaterialIcons name="refresh" size={24} color="white" />
       </TouchableOpacity>
     </View>
-  );
+  </View>
+);
+
+
+
 }
