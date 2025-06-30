@@ -3,16 +3,16 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(cors());
 app.use(express.json());
 
 // Conexión a MongoDB Atlas
-mongoose.connect('mongodb+srv://eliasgcueva:tomate24@0323106016.r9od6qy.mongodb.net/ColdTruck?retryWrites=true&w=majority&appName=0323106016')
-    .then(() => console.log('✅ Conectado a MongoDB Atlas'))
-    .catch(err => console.error('❌ Error al conectar a MongoDB Atlas:', err));
+mongoose.connect(process.env.MONGO_URI)
+    .then(() => console.log('Conectado a MongoDB Atlas'))
+    .catch(err => console.error('Error al conectar a MongoDB Atlas:', err));
 
 // 👉 PRIMERO define el esquema
 const usuarioSchema = new mongoose.Schema({

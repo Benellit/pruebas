@@ -1,7 +1,6 @@
 const mongoose = require('mongoose');
 
 const trackingSchema = new mongoose.Schema({
-  _id: String, // UUID o dejar que Mongo lo genere?? :C
   type: {
     type: String,
     enum: ['Point'],

@@ -1,5 +1,4 @@
-// src/services/routeService.js
-const apiKey = '5b3ce3597851110001cf62486b568c6b7213474cb53c4d52de715431';
+import { apiKey } from "../../conexion"; // Importa desde tu archivo de configuración
 
 export const fetchRoute = async (start, end) => {
   try {

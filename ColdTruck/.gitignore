@@ -32,6 +32,10 @@ yarn-error.*
 
 # local env files
 .env*.local
+Backend-ColdTruck/.env
+ColdTruck/.env
+ColdTruck/conexion.js
+
 
 # typescript
 *.tsbuildinfo

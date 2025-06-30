@@ -1,4 +1,4 @@
-const Tracking = require('../models-EsquemasMongoDB/Tracking');
+const Tracking = require('../../models-EsquemasMongoDB/Tracking');
 
 exports.guardarTracking = async (req, res) => {
   try {
@@ -14,7 +14,7 @@ exports.guardarTracking = async (req, res) => {
 
     const nuevoTracking = new Tracking({
       type: 'Point',
-      coordinates: [lng, lat], // GeoJSON: [longitud, latitud]
+      coordinates: [lng, lat], // formato GeoJSON: [longitud, latitud]
       IDTrip
     });
 
