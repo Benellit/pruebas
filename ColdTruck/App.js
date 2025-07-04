@@ -1,201 +1,77 @@
-// App.js
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { NavigationContainer, useNavigation } from '@react-navigation/native';
-import { createStackNavigator } from '@react-navigation/stack';
-import { useEffect, useState } from 'react';
+// App.js :c
+
+import React, { useContext } from 'react';
 import { Image, StyleSheet, TouchableOpacity } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { NavigationContainer } from '@react-navigation/native';
+import { createStackNavigator } from '@react-navigation/stack';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 
-// Pantallas
-  // shared
-import ProfileScreen from './src/screens/shared/profile';
+import { AuthProvider, AuthContext } from './src/context/AuthContext';
 
-  // driver
-import AdminHomeScreen from './src/screens/administrator/home';
-import HistoryDriverScreen from './src/screens/driver/historyRoutes';
-import MainDriverScreen from './src/screens/driver/mainDriver';
-import NotificationDriverScreen from './src/screens/driver/notificationDriver';
-import RouteDriverScreen from './src/screens/driver/routeDriver';
-import LoginScreen from './src/screens/loginYregister/login';
-import RegisterScreen from './src/screens/loginYregister/register';
+// Auth screens
+import LoginScreen from './src/screens/Auth/login';
+import RegisterScreen from './src/screens/Auth/register';
 
-  // admin
-import InsertRoutesScreen from './src/screens/administrator/insertRoutes';
-import AdminNotificationsScreen from './src/screens/administrator/notifications';
-import RegisterTrucksScreen from './src/screens/administrator/registerTrucks';
-import AdminRoutesScreen from './src/screens/administrator/routes';
-import AdminTrucksScreen from './src/screens/administrator/trucks';
-import AdminDriverScreen from './src/screens/administrator/users';
+// Main screens
+import HomeScreen from './src/screens/Home/HomeScreen';
+import RoutesScreen from './src/screens/Routes/RoutesScreen';
+import TrucksScreen from './src/screens/Trucks/TrucksScreen';
+import NotificationsScreen from './src/screens/Notifications/NotificationsScreen';
+import UsersScreen from './src/screens/Users/UsersScreen';
 
-  // test
-import MapScreen from './src/screens/shared/mapScreen';
-
-
-const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
+const Tab = createBottomTabNavigator();
 
-
-// Componente con las Tabs según el rol
-const HomeTabs = ({ route }) => {
-  const { role } = route.params;
-  const navigation = useNavigation();
-
-  const [usuario, setUsuario] = useState(null);
-
-  useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const userData = await AsyncStorage.getItem('userData');
-        if (userData) {
-          setUsuario(JSON.parse(userData));
-        }
-      } catch (error) {
-        console.error('Error al leer usuario:', error);
-      }
-    };
-
-    fetchUser();
-  }, []);
-
+const AppTabs = () => {
+  const { role } = useContext(AuthContext);
   return (
-      <Tab.Navigator
-        screenOptions={({ route }) => ({
-          headerTitle: '',
-          headerRight: () => {
-            return (
-              <TouchableOpacity style={styles.userIcon} onPress={() => navigation.navigate("Profile")}>
-                {usuario?.image ? (
-                  <Image source={{ uri: usuario.image }} style={{height:40, width: 40}} />
-                ) : (
-                  <Ionicons name="person-circle-outline" size={40} color="white" />
-                )}
-              </TouchableOpacity>
-            );
-          },
-          headerStyle: {
-              backgroundColor: "#046bc8",
-              height: 90,
-          },
-          tabBarActiveTintColor: '#046bc8',
-          tabBarInactiveTintColor: '#046bc8',
-          tabBarIcon: ({ focused, color, size }) => {
-            let iconName;
-              //Driver
-            if (route.name === 'Main') {
-              iconName = focused ? 'home' : 'home-outline';
-            } else if (route.name === 'Test') {
-              iconName = focused ? 'settings' : 'settings-outline';
-            } else if (route.name === 'History') {
-              iconName = focused ? 'book' : 'book-outline';
-            } else if (route.name === 'Notification') {
-              iconName = focused ? 'notifications' : 'notifications-outline';
-            } else if (route.name === 'Route') {
-              iconName = focused ? 'map' : 'map-outline';
-              // Admin
-            } else if (route.name === 'Users') {
-              iconName = focused ? 'people' : 'people-outline';
-            } else if (route.name === 'Routes') {
-              iconName = focused ? 'map' : 'map-outline';
-            } else if (route.name === 'Home') {
-              iconName = focused ? 'home' : 'home-outline';
-            } else if (route.name === 'Trucks') {
-              iconName = focused ? 'bus' : 'bus-outline';
-            } else if (route.name === 'Notifications') {
-              iconName = focused ? 'notifications' : 'notifications-outline';
-            } else if (route.name === 'Map') {
-              iconName = focused ? 'map' : 'map-outline';
-            }
-
-            return <Ionicons name={iconName} size={size} color={color} />;
-          },
-          tabBarItemStyle: {
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: 50,
-            margin: 5,
-            padding: 5,
-          },
-          tabBarPressColor: 'transparent',
-          tabBarPressOpacity: 1,
-          tabBarStyle: {
-            height: 110,
-            backgroundColor: 'white',
-            borderTopWidth: 1,
-            borderTopColor: '#e0e0e0',
-          },
-        })}
-      >
-      {role === 'Administrator' && (
-        <>
-        <Tab.Screen name="Home" component={AdminHomeScreen} />
-        <Tab.Screen name="Routes" component={AdminRoutesScreen} />
-        <Tab.Screen name="Map" component={MapScreen} />
-        <Tab.Screen name="Users" component={AdminDriverScreen} />
-        <Tab.Screen name="Trucks" component={AdminTrucksScreen} />
-        <Tab.Screen name="Notifications" component={AdminNotificationsScreen} />
-        </>
-      )}
-      {role === 'Driver' && (
-        <>
-          <Tab.Screen name='Main' component={MainDriverScreen}/>
-          <Tab.Screen name='Route' component={RouteDriverScreen}/>
-          <Tab.Screen name='History' component={HistoryDriverScreen}/>
-          <Tab.Screen name='Notification' component={NotificationDriverScreen}/>
-        </>
-      )}
+    <Tab.Navigator
+      screenOptions={({ route }) => ({
+        headerShown: false,
+        tabBarActiveTintColor: '#046bc8',
+        tabBarInactiveTintColor: '#046bc8',
+        tabBarIcon: ({ focused, color, size }) => {
+          let iconName = 'home';
+          if (route.name === 'Home') iconName = focused ? 'home' : 'home-outline';
+          if (route.name === 'Routes') iconName = focused ? 'map' : 'map-outline';
+          if (route.name === 'Trucks') iconName = focused ? 'bus' : 'bus-outline';
+          if (route.name === 'Notifications') iconName = focused ? 'notifications' : 'notifications-outline';
+          if (route.name === 'Users') iconName = focused ? 'people' : 'people-outline';
+          return <Ionicons name={iconName} size={size} color={color} />;
+        },
+        tabBarStyle: { height: 70 },
+      })}
+    >
+      <Tab.Screen name="Home" component={HomeScreen} initialParams={{ role }} />
+      <Tab.Screen name="Routes" component={RoutesScreen} initialParams={{ role }} />
+      <Tab.Screen name="Trucks" component={TrucksScreen} initialParams={{ role }} />
+      <Tab.Screen name="Notifications" component={NotificationsScreen} initialParams={{ role }} />
+      <Tab.Screen name="Users" component={UsersScreen} initialParams={{ role }} />
     </Tab.Navigator>
   );
 };
 
+const AuthStack = () => (
+  <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Screen name="Login" component={LoginScreen} />
+    <Stack.Screen name="Register" component={RegisterScreen} />
+  </Stack.Navigator>
+);
+
+const RootNavigator = () => {
+  const { isAuthenticated } = useContext(AuthContext);
+  return isAuthenticated ? <AppTabs /> : <AuthStack />;
+};
+
 export default function App() {
-  return (// headerTitle: ''
-    <NavigationContainer styles={styles.container}>
-      <Stack.Navigator initialRouteName="Login" screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="Login" component={LoginScreen} />
-        <Stack.Screen name="Register" component={RegisterScreen} />
-        <Stack.Screen name="HomeTabs" component={HomeTabs}/>
-        <Stack.Screen name="Profile" component={ProfileScreen}
-          options={{
-          headerShown: true,
-          headerTitle: '',
-          headerStyle: {
-              backgroundColor: "#046bc8",
-              height: 90,
-          },
-          headerTintColor: "#fff",
-        }}/>
-        <Stack.Screen name="insertRoutes" component={InsertRoutesScreen}
-          options={{
-          headerShown: true,
-          headerTitle: '',
-          headerStyle: {
-              backgroundColor: "#046bc8",
-              height: 90,
-          },
-          headerTintColor: "#fff",
-        }}/>
-        <Stack.Screen name="registerTrucks" component={RegisterTrucksScreen}
-          options={{
-          headerShown: true,
-          headerTitle: '',
-          headerStyle: {
-              backgroundColor: "#046bc8",
-              height: 90,
-          },
-          headerTintColor: "#fff",
-        }}/>
-      </Stack.Navigator>
-    </NavigationContainer>
+  return (
+    <AuthProvider>
+      <NavigationContainer>
+        <RootNavigator />
+      </NavigationContainer>
+    </AuthProvider>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    userSelect: "none",
-  },
-  userIcon: {
-    paddingRight: 15,
-  },
-})
+const styles = StyleSheet.create({});
