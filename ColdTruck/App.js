@@ -27,6 +27,7 @@ const AppTabs = () => {
   const { role } = useContext(AuthContext);
   return (
     <Tab.Navigator
+      initialRouteName="Routes"
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarActiveTintColor: '#046bc8',
