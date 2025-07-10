@@ -1,6 +1,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -27,10 +28,10 @@ const usuarioSchema = new mongoose.Schema({
 });
 
 // 👉 LUEGO crea el modelo
-const Usuario = mongoose.model('Usuario', usuarioSchema, 'users');
+const Usuario = mongoose.model('Usuario', usuarioSchema, 'user');
 
 // Obtener todos los usuarios
-app.get('/users', async (req, res) => {
+app.get('/user', async (req, res) => {
     try {
         const usuarios = await Usuario.find();
         res.json(usuarios);
@@ -44,7 +45,7 @@ const bcrypt = require('bcrypt'); // encriptación
 const saltRounds = 10;
 
 // Crear un nuevo usuario
-app.post('/users', async (req, res) => {
+app.post('/user', async (req, res) => {
     try {
         const { name, lastName, phoneNumber, email, password, status, image, role } = req.body;
 

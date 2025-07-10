@@ -14,8 +14,10 @@ app.use(express.json());
 conectarDB();
 
 // Rutas
-app.use('/users', require('./routes-Endpoints/usuarios'));
+app.use('/user', require('./routes-Endpoints/usuarios'));
 app.use('/tracking', require('./routes-Endpoints/tracking')); // Direccion en tiempo real (No en tiempo real):D
+app.use('/', require('./routes-Endpoints/auth')); // Esto habilita POST /login
+
 
 // Levantar servidor
 const PORT = process.env.PORT || 3000;

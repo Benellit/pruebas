@@ -11,7 +11,7 @@ const test2Screen = () => {
     const obtenerUsuarios = async () => {
         setLoading(true);
         try {
-            const res = await fetch(`http://${conexion}:3000/users`);
+            const res = await fetch(`http://${conexion}:3000/user`);
             const data = await res.json();
             setUsuarios(data);
             setError('');
@@ -30,7 +30,7 @@ const test2Screen = () => {
         }
 
         try {
-            const res = await fetch(`http://192.168.1.225:3000/users`, {
+            const res = await fetch(`http://192.168.1.225:3000/user`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'

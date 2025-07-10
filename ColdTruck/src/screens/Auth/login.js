@@ -1,7 +1,7 @@
 import { useState, useContext } from 'react';
 import { AuthContext } from '../../context/AuthContext';
 import { Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import conexion from '../../../conexion';
+import { conexion } from '../../../conexion';
 
 const LoginScreen = () => {
   const { signIn } = useContext(AuthContext);
@@ -17,7 +17,7 @@ const LoginScreen = () => {
     }
 
     try {
-      const response = await fetch(`http://${conexion}:3000/login`, {
+      const response = await fetch(`${conexion}/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
