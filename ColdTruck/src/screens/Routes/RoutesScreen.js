@@ -8,6 +8,10 @@ import * as Location from 'expo-location';
 import { Marker, Polyline } from 'react-native-maps';
 import { fetchRoute } from '../../services/routeService'; // Debe estar implementado
 import FloatingSearchBar from './FloatingSearchBar';
+import CreateTripSheet from './CreateTripSheet';
+import RoutesSheet from './RoutesSheet';
+
+
 
 
 
@@ -19,11 +23,15 @@ export default function RoutesScreen() {
   const mapRef = useRef(null);
   const [mapRegion, setMapRegion] = useState(null);
   const [zoom, setZoom] = useState(0.05);
+  const [showRoutesSheet, setShowRoutesSheet] = useState(false);
+
 
   // ----- Ruta -----
   const [isRouteMode, setIsRouteMode] = useState(false);
   const [routeMarkers, setRouteMarkers] = useState([]); // máximo 2 puntos
   const [route, setRoute] = useState([]); // coordenadas de la ruta
+  const [showCreateTrip, setShowCreateTrip] = useState(false);
+
 
   // Presionar el mapa para marcar puntos (solo en modo ruta)
   const handleMapPress = ({ nativeEvent: { coordinate } }) => {
@@ -150,7 +158,12 @@ export default function RoutesScreen() {
         <TouchableOpacity style={styles.actionBtn} onPress={centerOnUser}>
           <MaterialIcons name="my-location" size={24} color="#131b40" />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.truckBtn} onPress={() => showAlert('Camiones')}>
+        <TouchableOpacity
+          style={styles.truckBtn}
+          onPress={() => {
+            setShowRoutesSheet(true);
+            setShowCreateTrip(false);
+          }}>
           <Octicons name="package-dependents" size={18} color="#131b40" style={{ marginRight: 8 }} />
           <Text style={styles.truckText}>Routes</Text>
         </TouchableOpacity>
@@ -158,15 +171,27 @@ export default function RoutesScreen() {
 
       {/* Esquina inferior izquierda */}
       <View style={styles.leftButtons}>
-        <TouchableOpacity style={styles.blueFab} onPress={handleRutaBtn}>
-          <MaterialIcons name="share-location" size={48} color="#fff"  />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.historyBtn} onPress={() => showAlert('Historial')}>
-          <Ionicons name="reader" size={30} color="#1a76fe" />
-        </TouchableOpacity>
+        <TouchableOpacity
+            style={styles.blueFab}
+            onPress={() => {
+              setShowCreateTrip(true);
+              setShowRoutesSheet(false);
+            }}>
+            <MaterialIcons name="share-location" size={48} color="#fff" />
+          </TouchableOpacity>
+
+
+        <TouchableOpacity style={styles.historyBtn} onPress={handleRutaBtn}>
+            <Ionicons name="reader" size={30} color="#1a76fe" />
+          </TouchableOpacity>
+
       </View>
 
-      <FloatingSearchBar /> 
+      {!showCreateTrip && <FloatingSearchBar />}
+      {showCreateTrip && <CreateTripSheet onClose={() => setShowCreateTrip(false)} />}
+      {showRoutesSheet && <RoutesSheet onClose={() => setShowRoutesSheet(false)} />}
+
+
       {/* Barra de búsqueda flotante */}
 
     </View>
