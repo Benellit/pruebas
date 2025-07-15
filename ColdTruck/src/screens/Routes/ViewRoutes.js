@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, ActivityIndicator, Alert } from 'react-native';
+import { View, ActivityIndicator, Alert, useColorScheme } from 'react-native';
 import CustomMap from '../../components/MapComponents/CustomMap';
 import { MapMarkers } from '../../components/MapComponents/MapMarkers';
 import { RoutePolyline } from '../../components/MapComponents/RoutePolyline';
@@ -7,6 +7,8 @@ import styles from '../shared/mapStyles';
 import { conexion } from '../../../conexion';
 
 export default function ViewRoutes() {
+  const scheme = useColorScheme();
+  const theme = scheme || 'light';
   const [trackingGroups, setTrackingGroups] = useState([]);
   const [loading, setLoading] = useState(true);
   const mapRef = useRef(null);
@@ -36,8 +38,8 @@ export default function ViewRoutes() {
   if (loading) return <ActivityIndicator style={{ marginTop: 50 }} />;
 
   return (
-    <View style={styles.container}>
-      <CustomMap ref={mapRef} style={styles.map}>
+    <View style={[styles.container, theme === 'light' && { backgroundColor: '#ededed' }]}> 
+      <CustomMap ref={mapRef} style={styles.map} theme={theme}>
         {trackingGroups.map((trackList, idx) => (
           <React.Fragment key={`track-${idx}`}>
             <MapMarkers markers={trackList.map(t => ({

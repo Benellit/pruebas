@@ -1,6 +1,5 @@
 // src/utils/mapStyles.js
-export const mapStyle = [
-  {
+export const darkMapStyle = [  {
     elementType: 'geometry',
     stylers: [{ color: '#1d2c4d' }],
   },
@@ -33,3 +32,8 @@ export const mapStyle = [
   },
   // Puedes incluir más estilos aquí si lo deseas.
 ];
+
+export const lightMapStyle = [];
+
+// Para compatibilidad con imports existentes
+export const mapStyle = darkMapStyle;

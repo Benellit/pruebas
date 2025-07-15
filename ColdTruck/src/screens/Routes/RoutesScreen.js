@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, Alert, Text, Dimensions, StyleSheet as RNStyleSheet } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Alert, Text, Dimensions, StyleSheet as RNStyleSheet, useColorScheme } from 'react-native';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
@@ -20,6 +20,10 @@ import CustomMap from '../../components/MapComponents/CustomMap';
 const { width, height } = Dimensions.get('window');
 
 export default function RoutesScreen() {
+  const colorScheme = useColorScheme();
+  const [theme, setTheme] = useState(colorScheme || 'light');
+  const toggleTheme = () => setTheme(prev => (prev === 'light' ? 'dark' : 'light'));
+  const iconColor = theme === 'dark' ? '#fff' : '#222';
   const mapRef = useRef(null);
   const [mapRegion, setMapRegion] = useState(null);
   const [zoom, setZoom] = useState(0.05);
@@ -114,7 +118,7 @@ export default function RoutesScreen() {
   const showAlert = (msg) => Alert.alert('Info', msg);
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, theme === 'dark' && { backgroundColor: '#0e1626' }]}>
       {/* Mapa */}
       <CustomMap
         ref={mapRef}
@@ -122,8 +126,9 @@ export default function RoutesScreen() {
         showsUserLocation={true}
         style={RNStyleSheet.absoluteFillObject}
         onPress={handleMapPress}
-        showsCompass={false} 
+        showsCompass={false}
         showsMyLocationButton={false}
+        theme={theme}
       >
         {/* Mostrar marcadores y polilínea SOLO cuando estén los puntos */}
         {routeMarkers.map((marker, idx) => (

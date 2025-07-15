@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Alert, TouchableOpacity } from 'react-native';
+import { View, Alert, TouchableOpacity, useColorScheme } from 'react-native';
 import CustomMap from '../../components/MapComponents/CustomMap';
 import { MaterialIcons } from '@expo/vector-icons';
 import { MapMarkers } from '../../components/MapComponents/MapMarkers';
@@ -9,7 +9,11 @@ import { fetchRoute } from '../../services/routeService';
 import styles from '../shared/mapStyles';
 import { conexion } from '../../../conexion';
 
+
 export default function AssignRoute() {
+
+  const scheme = useColorScheme();
+  const theme = scheme || 'light';
   const [markers, setMarkers] = useState([]);
   const [route, setRoute] = useState([]);
   const mapRef = useRef(null);
@@ -68,8 +72,8 @@ export default function AssignRoute() {
   };
 
   return (
-    <View style={styles.container}>
-      <CustomMap ref={mapRef} onPress={handleMapPress} style={styles.map}>
+    <View style={[styles.container, theme === 'light' && { backgroundColor: '#ededed' }]}>
+      <CustomMap ref={mapRef} onPress={handleMapPress} style={styles.map} theme={theme}>
         <MapMarkers markers={markers} />
         {route.length > 0 && <RoutePolyline route={route} />}
       </CustomMap>
