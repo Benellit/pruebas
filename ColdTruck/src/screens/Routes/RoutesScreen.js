@@ -143,9 +143,12 @@ export default function RoutesScreen() {
       </CustomMap>
 
       {/* Botón de menú 3 puntos arriba del zoom */}
-      <TouchableOpacity style={styles.menuButton} onPress={() => showAlert('Menú (sin función)')}>
-        <MaterialIcons name="more-vert" size={22} color="#222" />
+      <TouchableOpacity style={styles.menuButton} onPress={toggleTheme}>
+        {theme === 'dark'
+          ? <MaterialIcons name="wb-sunny" size={22} color={iconColor} />
+          : <MaterialIcons name="nightlight-round" size={22} color={iconColor} />}
       </TouchableOpacity>
+
 
       {/* Esquina inferior derecha */}
       <View style={styles.rightButtons}>
