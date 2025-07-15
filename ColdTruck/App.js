@@ -1,7 +1,7 @@
 // App.js :c
 
 import React, { useContext } from 'react';
-import { Image, StyleSheet, TouchableOpacity } from 'react-native';
+import { Image, StyleSheet, TouchableOpacity, useColorScheme } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
@@ -25,13 +25,16 @@ const Tab = createBottomTabNavigator();
 
 const AppTabs = () => {
   const { role } = useContext(AuthContext);
+  const scheme = useColorScheme();
+  const defaultBg = scheme === 'dark' ? '#1b263b' : '#fff';
+  const defaultActive = scheme === 'dark' ? '#fff' : '#046bc8';
   return (
     <Tab.Navigator
       initialRouteName="Routes"
       screenOptions={({ route }) => ({
         headerShown: false,
-        tabBarActiveTintColor: '#046bc8',
-        tabBarInactiveTintColor: '#046bc8',
+       tabBarActiveTintColor: defaultActive,
+        tabBarInactiveTintColor: defaultActive,
         tabBarIcon: ({ focused, color, size }) => {
           let iconName = 'home';
           if (route.name === 'Home') iconName = focused ? 'home' : 'home-outline';
@@ -41,7 +44,7 @@ const AppTabs = () => {
           if (route.name === 'Users') iconName = focused ? 'people' : 'people-outline';
           return <Ionicons name={iconName} size={size} color={color} />;
         },
-        tabBarStyle: { height: 70 },
+        tabBarStyle: { height: 70, backgroundColor: defaultBg },
       })}
     >
       <Tab.Screen name="Home" component={HomeScreen} initialParams={{ role }} />

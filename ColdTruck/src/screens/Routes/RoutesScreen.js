@@ -4,6 +4,7 @@ import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 import Octicons from '@expo/vector-icons/Octicons';
+import { useNavigation } from '@react-navigation/native';
 import * as Location from 'expo-location';
 import { Marker, Polyline } from 'react-native-maps';
 import { fetchRoute } from '../../services/routeService'; // Debe estar implementado
@@ -19,11 +20,52 @@ import CustomMap from '../../components/MapComponents/CustomMap';
 
 const { width, height } = Dimensions.get('window');
 
+const themeColors = {
+  light: {
+    background: '#ededed',
+    card: '#fff',
+    text: '#131b40',
+    searchBg: '#eaf1fa',
+    searchSection: '#edf6fe',
+    icon: '#222',       // iconos generales en fondo claro
+    iconActive: '#1976D2', // azul para resaltar (opcional)
+    blueFabBg: '#1a76fe',  // fondo del botón especial
+    blueFabIcon: '#fff',   // ícono blanco en el FAB azul
+    blueFabBg: '#1a76fe',  // fondo azul
+    blueFabIcon: '#fff',   // icono blanco en modo claro
+  },
+  dark: {
+    background: '#0e1626',
+    card: '#1b263b',
+    text: '#fff',
+    searchBg: '#152a3a',
+    searchSection: '#1f2d3d',
+    icon: '#fff',       // iconos generales en fondo oscuro
+    iconActive: '#8ec3b9', // azul claro o acento (opcional)
+    blueFabBg: '#152a3a',  // mismo azul, puedes oscurecer si quieres
+    blueFabIcon: '#fff',   // sigue siendo blanco
+    blueFabBg: '#152a3a',  // fondo azul (puedes cambiarlo si quieres)
+    blueFabIcon: '#fff',   // icono negro en modo oscuro
+  },
+};
+
+
 export default function RoutesScreen() {
   const colorScheme = useColorScheme();
   const [theme, setTheme] = useState(colorScheme || 'light');
   const toggleTheme = () => setTheme(prev => (prev === 'light' ? 'dark' : 'light'));
   const iconColor = theme === 'dark' ? '#fff' : '#222';
+  const navigation = useNavigation();
+
+  useEffect(() => {
+    navigation.getParent()?.setOptions({
+      tabBarStyle: [{ height: 70 }, { backgroundColor: themeColors[theme].card }],
+      tabBarActiveTintColor: theme === 'dark' ? '#fff' : '#046bc8',
+      tabBarInactiveTintColor: theme === 'dark' ? '#9aa0b5' : '#046bc8',
+    });
+  }, [navigation, theme]);
+
+  const t = themeColors[theme];
   const mapRef = useRef(null);
   const [mapRegion, setMapRegion] = useState(null);
   const [zoom, setZoom] = useState(0.05);
@@ -118,7 +160,7 @@ export default function RoutesScreen() {
   const showAlert = (msg) => Alert.alert('Info', msg);
 
   return (
-    <View style={[styles.container, theme === 'dark' && { backgroundColor: '#0e1626' }]}>
+    <View style={[styles.container, { backgroundColor: t.background }]}>
       {/* Mapa */}
       <CustomMap
         ref={mapRef}
@@ -148,7 +190,7 @@ export default function RoutesScreen() {
       </CustomMap>
 
       {/* Botón de menú 3 puntos arriba del zoom */}
-      <TouchableOpacity style={styles.menuButton} onPress={toggleTheme}>
+      <TouchableOpacity style={[styles.menuButton, { backgroundColor: t.card }]} onPress={toggleTheme}>
         {theme === 'dark'
           ? <MaterialIcons name="wb-sunny" size={22} color={iconColor} />
           : <MaterialIcons name="nightlight-round" size={22} color={iconColor} />}
@@ -157,40 +199,44 @@ export default function RoutesScreen() {
 
       {/* Esquina inferior derecha */}
       <View style={styles.rightButtons}>
-        <TouchableOpacity style={styles.actionBtn} onPress={zoomIn}>
-          <FontAwesome6 name="add" size={24} color="black" />
+        <TouchableOpacity style={[styles.actionBtn, { backgroundColor: t.card }]} onPress={zoomIn}>
+          <FontAwesome6 name="add" size={24} color={t.icon} />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.actionBtn} onPress={zoomOut}>
-          <FontAwesome6 name="minus" size={24} color="black" />
+        <TouchableOpacity style={[styles.actionBtn, { backgroundColor: t.card }]} onPress={zoomOut}>
+          <FontAwesome6 name="minus" size={24} color={t.icon} />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.actionBtn} onPress={centerOnUser}>
-          <MaterialIcons name="my-location" size={24} color="#131b40" />
+        <TouchableOpacity style={[styles.actionBtn, { backgroundColor: t.card }]} onPress={centerOnUser}>
+          <MaterialIcons name="my-location" size={24} color={t.icon} />
         </TouchableOpacity>
+
+
         <TouchableOpacity
-          style={styles.truckBtn}
+          style={[styles.truckBtn, { backgroundColor: t.card }]}
           onPress={() => {
             setShowRoutesSheet(true);
             setShowCreateTrip(false);
           }}>
-          <Octicons name="package-dependents" size={18} color="#131b40" style={{ marginRight: 8 }} />
-          <Text style={styles.truckText}>Routes</Text>
+          <Octicons name="package-dependents" size={18} color={t.text} style={{ marginRight: 8 }} />
+          <Text style={[styles.truckText, { color: t.text }]}>Routes</Text>
         </TouchableOpacity>
       </View>
 
       {/* Esquina inferior izquierda */}
       <View style={styles.leftButtons}>
         <TouchableOpacity
-            style={styles.blueFab}
-            onPress={() => {
-              setShowCreateTrip(true);
-              setShowRoutesSheet(false);
-            }}>
-            <MaterialIcons name="share-location" size={48} color="#fff" />
-          </TouchableOpacity>
+          style={[styles.blueFab, { backgroundColor: t.blueFabBg }]}
+          onPress={() => {
+            setShowCreateTrip(true);
+            setShowRoutesSheet(false);
+          }}>
+          <MaterialIcons name="share-location" size={48} color={t.blueFabIcon} />
+        </TouchableOpacity>
 
 
-        <TouchableOpacity style={styles.historyBtn} onPress={handleRutaBtn}>
-            <Ionicons name="reader" size={30} color="#1a76fe" />
+
+
+        <TouchableOpacity style={[styles.historyBtn, { backgroundColor: t.card }]} onPress={handleRutaBtn}>
+            <Ionicons name="reader" size={30} color={t.text} />
           </TouchableOpacity>
 
       </View>
