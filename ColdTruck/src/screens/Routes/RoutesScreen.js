@@ -241,7 +241,7 @@ export default function RoutesScreen() {
 
       </View>
 
-      {!showCreateTrip && <FloatingSearchBar />}
+      {!showCreateTrip && <FloatingSearchBar theme={theme} t={t} />}
       {showCreateTrip && <CreateTripSheet onClose={() => setShowCreateTrip(false)} />}
       {showRoutesSheet && <RoutesSheet onClose={() => setShowRoutesSheet(false)} />}
 

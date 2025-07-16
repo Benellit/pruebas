@@ -6,37 +6,30 @@ import {
   TouchableOpacity,
   Animated,
   Dimensions,
-  Pressable,
   PanResponder,
-  Keyboard,
   BackHandler,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { FontAwesome } from '@expo/vector-icons';
 
 const { width, height } = Dimensions.get('window');
 const EXPANDED_HEIGHT = Math.round(height * 0.9);
 const COLLAPSED_HEIGHT = 90;
 
-// --- LÍMITES AJUSTABLES ---
-const DOWN_OVERSHOOT = 15;     // Cuánto baja más allá de cerrado
-const UP_MARGIN = 160;         // Hasta dónde sube (mínimo: deja 200px arriba)
-
-// --- Ajuste de rango correcto ---
+// Límites
+const DOWN_OVERSHOOT = 15;
+const UP_MARGIN = 160;
 const SHEET_TOTAL_MOVEMENT = EXPANDED_HEIGHT - COLLAPSED_HEIGHT;
-const SHEET_MIN = UP_MARGIN;                         // arriba (abierta)
-const SHEET_MAX = SHEET_TOTAL_MOVEMENT + DOWN_OVERSHOOT; // abajo (cerrada + overshoot)
-
+const SHEET_MIN = UP_MARGIN;
+const SHEET_MAX = SHEET_TOTAL_MOVEMENT + DOWN_OVERSHOOT;
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 
-export default function FloatingSearchBar({ onClose }) {
+// Props: theme ('light'|'dark'), t (colores del tema actual)
+export default function FloatingSearchBar({ onClose, theme = 'light', t }) {
   const [dragging, setDragging] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
-  // Inicia cerrada (abajo)
   const translateY = useRef(new Animated.Value(SHEET_MAX)).current;
 
-  // --- Interceptar botón atrás correctamente ---
   useEffect(() => {
     const handleBack = () => {
       if (isOpen) {
@@ -108,11 +101,16 @@ export default function FloatingSearchBar({ onClose }) {
     elevation: dragging ? 10 : 2,
   };
 
+  // Gradientes para cada tema
+  const gradientColors = theme === 'dark'
+    ? [t.searchSection, t.card]
+    : [t.searchSection, t.card];
+
   return (
     <>
       <Animated.View
         pointerEvents="none"
-        style={[styles.backdrop, { opacity: backdropOpacity }]}
+        style={[styles.backdrop, { backgroundColor: t.background, opacity: backdropOpacity }]}
       />
 
       <Animated.View
@@ -120,55 +118,74 @@ export default function FloatingSearchBar({ onClose }) {
           styles.sheet,
           {
             height: EXPANDED_HEIGHT,
-            bottom: 0,
-            left: 0,
-            right: 0,
             position: 'absolute',
             transform: [{ translateY }],
             zIndex: 999,
+            borderTopLeftRadius: 25,
+            borderTopRightRadius: 25,
           },
         ]}
         pointerEvents="box-none"
       >
         <LinearGradient
-          colors={['#edf3fe', '#ffffff']}
+          colors={gradientColors}
           start={{ x: 0.5, y: 0.5 }}
           end={{ x: 0.5, y: 1 }}
           style={[StyleSheet.absoluteFill, { borderTopLeftRadius: 25, borderTopRightRadius: 25 }]}
         />
         {/* Header/barra de búsqueda */}
         <View style={{ alignItems: 'center', width: '100%' }}>
-          <View
-            style={{ width: '100%', alignItems: 'center' }}
-            {...panResponder.panHandlers}
-          >
-            <Animated.View style={[styles.dragBarClosed, dragBarAnimStyle]} />
+          <View style={{ width: '100%', alignItems: 'center' }} {...panResponder.panHandlers}>
+            <Animated.View style={[
+              styles.dragBarClosed,
+              {
+                backgroundColor: theme === 'dark' ? '#344863' : '#c1d3ee',
+              },
+              dragBarAnimStyle
+            ]} />
             <TouchableOpacity
-              style={styles.searchBarContainer}
+              style={[
+                styles.searchBarContainer,
+                {
+                  backgroundColor: t.searchBg,
+                  borderColor: theme === 'dark' ? '#406099' : '#1976D2',
+                  shadowColor: theme === 'dark' ? '#253860' : '#2976D2',
+                }
+              ]}
               activeOpacity={0.95}
               onPress={openSheet}
             >
-              <View style={styles.inputFake}>
-                <Ionicons name="search" size={22} color="#1976D2" style={{ marginLeft: 2, marginRight: 8 }} />
-                <Text style={styles.searchPlaceholder}>Busqueda por criterios</Text>
+              <View style={[styles.inputFake, { backgroundColor: t.card }]}>
+                <Ionicons name="search" size={22} color={theme === 'dark' ? '#8ec3b9' : '#1976D2'} style={{ marginLeft: 2, marginRight: 8 }} />
+                <Text style={[styles.searchPlaceholder, { color: t.text, opacity: 0.6 }]}>
+                  Busqueda por criterios
+                </Text>
               </View>
             </TouchableOpacity>
           </View>
         </View>
-        {/* Contenido que aparece al subir */}
-        <View style={styles.bottomSection}>
-          <TouchableOpacity style={styles.listItem}>
-            <Ionicons name="location" size={23} color="#1976D2" style={{ marginRight: 12 }} />
+        {/* Contenido al abrir */}
+        <View style={[styles.bottomSection]}>
+          <TouchableOpacity style={[
+            styles.listItem,
+            {
+              backgroundColor: t.searchSection,
+              borderColor: theme === 'dark' ? '#253860' : '#e3eefd',
+            }
+          ]}>
+            <Ionicons name="location" size={23} color={theme === 'dark' ? '#8ec3b9' : '#1976D2'} style={{ marginRight: 12 }} />
             <View>
-              <Text style={{ fontWeight: 'bold', fontSize: 17 }}>Oxxo</Text>
-              <Text style={{ color: '#757575' }}>Calle 5 de Mayo, Maclovio Rojas, 22...</Text>
+              <Text style={{ fontWeight: 'bold', fontSize: 17, color: t.text }}>Oxxo</Text>
+              <Text style={{ color: theme === 'dark' ? '#c2d6ea' : '#757575' }}>Calle 5 de Mayo, Maclovio Rojas, 22...</Text>
             </View>
             <View style={{ marginLeft: 'auto', flexDirection: 'row', alignItems: 'center' }}>
               <Text style={{ color: '#aaa', fontSize: 13, marginRight: 6 }}>691 m</Text>
             </View>
           </TouchableOpacity>
           <TouchableOpacity style={styles.deleteHistory}>
-            <Text style={{ color: '#223', fontWeight: 'bold' }}>Borrar todo el historial</Text>
+            <Text style={{ color: theme === 'dark' ? '#b8cdfc' : '#223', fontWeight: 'bold' }}>
+              Borrar todo el historial
+            </Text>
           </TouchableOpacity>
         </View>
       </Animated.View>
