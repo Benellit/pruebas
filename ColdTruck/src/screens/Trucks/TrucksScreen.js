@@ -1,14 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  TextInput,
-  FlatList,
-  TouchableOpacity,
   Image,
+  FlatList,
+  SafeAreaView,
 } from 'react-native';
-
 
 const truckImages = {
   Available: require('../../../assets/truck_available.png'),
@@ -18,127 +16,115 @@ const truckImages = {
   Default: require('../../../assets/truck_default.png'),
 };
 
+const getTruckImage = (status) => {
+  return truckImages[status] || truckImages['Default'];
+};
+
+// ===== MOCK DATA (simulando que haces el join) =====
+
+const mockBrands = [
+  { _id: 3, name: 'Freightliner' },
+  { _id: 1, name: 'Kenworth' },
+];
+
+const mockModels = [
+  { _id: 10, name: 'Everest', IDBrand: 3 },
+  { _id: 1, name: 'T680', IDBrand: 1 },
+];
+
+const mockAdmins = [
+  { _id: 5, name: 'Elias Jair Gomez' },
+];
+
 const mockTrucks = [
   {
-    number: 'T001',
-    plates: 'ABC123',
+    plates: 'FCX-123-1',
     status: 'Available',
-    loadCapacity: 8000,
-    IDAdmin: 'A1',
-    IDBrand: 'B1',
-    IDModel: 'M1',
-  },
-  {
-    number: 'T002',
-    plates: 'DEF456',
-    status: 'OnTrip',
-    loadCapacity: 9000,
-    IDAdmin: 'A2',
-    IDBrand: 'B2',
-    IDModel: 'M2',
-  },
-  {
-    number: 'T003',
-    plates: 'XYZ789',
-    status: 'Inactive',
-    loadCapacity: 9500,
-    IDAdmin: 'A3',
-    IDBrand: 'B1',
-    IDModel: 'M2',
+    IDBrand: 3,
+    IDModel: 10,
+    IDAdmin: 5,
+    loadCapacity: 4042,
+    // Puedes agregar más datos mock si gustas
   },
 ];
 
-const getTruckImage = (status) => {
-  if (truckImages[status]) return truckImages[status];
-  return truckImages['Default'];
+// Helper para mock: buscar por ID
+const findBrand = (id) => mockBrands.find((b) => b._id === id)?.name || 'N/A';
+const findModel = (id) => mockModels.find((m) => m._id === id)?.name || 'N/A';
+const findAdmin = (id) => mockAdmins.find((u) => u._id === id)?.name || 'N/A';
+
+const statusColors = {
+  Available: '#27ae60',
+  OnTrip: '#2980b9',
+  Maintenance: '#f39c12',
+  Inactive: '#c0392b',
 };
 
 const TrucksScreen = () => {
-  // Aquí luego reemplazas por tus datos del backend
   const [trucks, setTrucks] = useState(mockTrucks);
-  const [search, setSearch] = useState('');
-  const [filtered, setFiltered] = useState(mockTrucks);
 
-  useEffect(() => {
-    if (!search) {
-      setFiltered(trucks);
-    } else {
-      const txt = search.toLowerCase();
-      setFiltered(
-        trucks.filter(
-          (truck) =>
-            truck.number.toLowerCase().includes(txt) ||
-            truck.plates.toLowerCase().includes(txt)
-        )
-      );
-    }
-  }, [search, trucks]);
+  // TODO: aquí va el fetch a tu backend y luego los "join" para obtener brand/model/admin
 
-  const renderTruck = ({ item }) => (
-    <TouchableOpacity
-      style={styles.truckCard}
-      // TODO: Implementar navegación a detalles
-      onPress={() => {}}
-      activeOpacity={0.8}
-    >
-      <Image
-        source={getTruckImage(item.status)}
-        style={styles.truckImage}
-        resizeMode="contain"
-      />
-      <View style={styles.infoContainer}>
-        <Text style={styles.truckNumber}>{item.number}</Text>
-        <Text style={styles.plates}>Plates: {item.plates}</Text>
-        <Text style={styles.statusLabel}>
-          Status:{' '}
-          <Text style={[styles.status, statusColors[item.status] || {}]}>
+  const renderTruckCard = ({ item }) => (
+    <View style={styles.card}>
+      {/* Encabezado: camión a la izquierda, placa a la derecha */}
+      <View style={styles.headerRow}>
+        <Image source={getTruckImage(item.status)} style={styles.headerImage} />
+        <View style={styles.plateBox}>
+          <Text style={styles.plateText}>{item.plates}</Text>
+        </View>
+      </View>
+      {/* ===== DATOS GRID ===== */}
+      <View style={styles.gridRow}>
+        <View style={styles.gridBox}>
+          <Text style={styles.label}>Brand</Text>
+          <Text style={styles.value}>{findBrand(item.IDBrand)}</Text>
+        </View>
+        <View style={styles.gridBox}>
+          <Text style={styles.label}>Model</Text>
+          <Text style={styles.value}>{findModel(item.IDModel)}</Text>
+        </View>
+      </View>
+      <View style={styles.gridRow}>
+        <View style={styles.gridBox}>
+          <Text style={styles.label}>Admin</Text>
+          <Text style={styles.value}>{findAdmin(item.IDAdmin)}</Text>
+        </View>
+        <View style={styles.gridBox}>
+          <Text style={styles.label}>Load Capacity</Text>
+          <Text style={styles.value}>{item.loadCapacity} kg</Text>
+        </View>
+      </View>
+      <View style={styles.gridRow}>
+        <View style={styles.gridBox}>
+          <Text style={styles.label}>Status</Text>
+          <Text style={[styles.value, { color: statusColors[item.status] || '#000' }]}>
             {item.status}
           </Text>
-        </Text>
-        <Text style={styles.loadCapacity}>
-          Load Capacity: {item.loadCapacity} kg
-        </Text>
+        </View>
+        {/* Aquí puedes agregar otro campo futuro */}
+        <View style={styles.gridBox}>
+          {/* Espacio reservado para próximos datos */}
+          {/* Ejemplo: <Text style={styles.label}>Another field</Text>
+                     <Text style={styles.value}>Value</Text> */}
+        </View>
       </View>
-    </TouchableOpacity>
+      {/* === TODO/FETCH: Aquí veremos después detalles extendidos del camión/trip/rutas, etc. === */}
+    </View>
   );
 
   return (
-    <View style={styles.container}>
-      {/* Header / Title */}
-      <Text style={styles.header}>All Trucks</Text>
-      {/* Search Bar */}
-      <View style={styles.searchContainer}>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Find Truck"
-          value={search}
-          onChangeText={setSearch}
-          placeholderTextColor="#7fa7da"
-        />
-      </View>
-      {/* FlatList of trucks */}
+    <SafeAreaView style={styles.container}>
+      <Text style={styles.title}>Truck Trip Details</Text>
       <FlatList
-        data={filtered}
-        keyExtractor={(item) => item.number}
-        renderItem={renderTruck}
+        data={trucks}
+        keyExtractor={(item, idx) => item.plates + idx}
+        renderItem={renderTruckCard}
         contentContainerStyle={{ paddingBottom: 24 }}
         showsVerticalScrollIndicator={false}
-        ListEmptyComponent={
-          <Text style={{ textAlign: 'center', color: '#aaa', marginTop: 20 }}>
-            No trucks found.
-          </Text>
-        }
       />
-    </View>
+    </SafeAreaView>
   );
-};
-
-// Color para cada status (paleta azulada, fácil de modificar)
-const statusColors = {
-  Available: { color: '#27ae60' }, // Verde
-  OnTrip: { color: '#2980b9' },    // Azul fuerte
-  Maintenance: { color: '#f39c12' }, // Naranja/Amarillo
-  Inactive: { color: '#c0392b' },    // Rojo
 };
 
 const styles = StyleSheet.create({
@@ -146,79 +132,77 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f8fbff',
     paddingHorizontal: 20,
-    paddingTop: 24,
+    paddingTop: 8,
   },
-  header: {
-    fontSize: 26,
+  title: {
+    fontSize: 24,
+    color: '#124679',
     fontWeight: 'bold',
-    color: '#124679',
-    marginBottom: 10,
-    marginTop: 15,
-    letterSpacing: 1,
+    marginTop: 32,
+    marginBottom: 20,
+    textAlign: 'left',
   },
-  searchContainer: {
-    backgroundColor: '#e6eef8',
+  card: {
+    backgroundColor: '#ffffff',
     borderRadius: 16,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    marginBottom: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
+    padding: 16,
+    marginBottom: 20,
     shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowOffset: { width: 0, height: 1 },
-    shadowRadius: 2,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 16,
-    color: '#124679',
-    fontWeight: '500',
-  },
-  truckCard: {
-    backgroundColor: '#fff',
-    flexDirection: 'row',
-    borderRadius: 16,
-    marginBottom: 16,
-    padding: 14,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
+    shadowOpacity: 0.08,
     shadowOffset: { width: 0, height: 2 },
     shadowRadius: 4,
+    elevation: 2,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 18,
+    justifyContent: 'flex-start',
+  },
+  headerImage: {
+    width: 128,
+    height: 106,
+    resizeMode: 'contain',
+    marginRight: 14,
+  },
+  plateBox: {
+    backgroundColor: '#fff9cc',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    minWidth: 135,
+    shadowColor: '#000',
+    shadowOpacity: 0.04,
+    shadowOffset: { width: 0, height: 1 },
+    shadowRadius: 2,
     elevation: 1,
   },
-  truckImage: {
-    width: 56,
-    height: 56,
-    marginRight: 16,
-  },
-  infoContainer: {
-    flex: 1,
-  },
-  truckNumber: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#124679',
-    marginBottom: 2,
-  },
-  plates: {
-    fontSize: 15,
-    color: '#5277a6',
-    marginBottom: 2,
-  },
-  statusLabel: {
-    fontSize: 15,
-    color: '#888',
-    marginBottom: 2,
-  },
-  status: {
+  plateText: {
+    fontSize: 20,
     fontWeight: 'bold',
+    color: '#333',
+    letterSpacing: 1,
   },
-  loadCapacity: {
+  gridRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 24,
+  },
+  gridBox: {
+    flex: 1,
+    paddingHorizontal: 6,
+  },
+  label: {
     fontSize: 14,
-    color: '#5678b9',
-    marginTop: 2,
+    color: '#5678a9',
+    marginBottom: 1,
+  },
+  value: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: '#2c3e50',
   },
 });
 
