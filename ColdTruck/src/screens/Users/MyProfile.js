@@ -117,13 +117,14 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   content: {
-    padding: 20,
+    padding: 5,
     paddingBottom: 60,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 28,
+    marginTop: 40,
   },
   avatar: {
     width: 70,
@@ -160,6 +161,7 @@ const styles = StyleSheet.create({
     shadowRadius: 7,
     elevation: 4,
     marginBottom: 28,
+    marginTop: 10,
   },
   itemRow: {
     flexDirection: 'row',

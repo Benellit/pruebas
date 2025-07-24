@@ -17,6 +17,8 @@ conectarDB();
 app.use('/user', require('./routes-Endpoints/usuarios'));
 app.use('/tracking', require('./routes-Endpoints/tracking')); // Direccion en tiempo real (No en tiempo real):D
 app.use('/', require('./routes-Endpoints/auth')); // Esto habilita POST /login
+app.use('/driver', require('./routes-Endpoints/driver'));
+
 
 
 // Levantar servidor

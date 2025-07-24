@@ -1,17 +1,28 @@
 import React, { useContext, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { AuthContext } from '../../context/AuthContext';
 
-import MyProfile from './MyProfile'; // Asegúrate de tener este componente
-import UserManagement from './UserManagement'; // O pon tu contenido aquí mismo
+import MyProfile from './MyProfile';
+import UserManagement from './UserManagement';
 
 const UsersScreen = () => {
   const { role } = useContext(AuthContext);
-  const [activeTab, setActiveTab] = useState('Users'); // Controla cuál tab está activa
+
+  // Si el usuario es conductor, solo muestra su perfil
+  if (role === 'driver') {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#F6F8FA', padding: 16 }}>
+        <MyProfile />
+      </View>
+    );
+  }
+
+  // Si es admin, se mantiene el diseño de tabs
+  const [activeTab, setActiveTab] = useState('Users');
 
   return (
     <View style={styles.container}>
-      {/* Barra de tabs superior interna */}
+      {/* Barra de tabs solo visible para admin */}
       <View style={styles.tabs}>
         <TouchableOpacity
           style={activeTab === 'Users' ? styles.tabActive : styles.tabInactive}
@@ -31,22 +42,14 @@ const UsersScreen = () => {
         </TouchableOpacity>
       </View>
 
-      {/* Contenido de cada "pantalla interna" */}
       <View style={styles.content}>
-        {activeTab === 'Users' && (
-          // Puedes importar y renderizar aquí tu lista de usuarios o gestión
-          role === 'admin'
-            ? <UserManagement />
-            : <Text style={styles.text}>User Management</Text>
-        )}
-        {activeTab === 'MyProfile' && (
-          // Componente de perfil de usuario
-          <MyProfile />
-        )}
+        {activeTab === 'Users' && <UserManagement />}
+        {activeTab === 'MyProfile' && <MyProfile />}
       </View>
     </View>
   );
 };
+
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F6F8FA' },
