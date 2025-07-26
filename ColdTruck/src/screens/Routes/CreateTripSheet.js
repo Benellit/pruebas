@@ -1,10 +1,16 @@
 import React, { useRef, useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, Animated, Dimensions,
-  TextInput, ScrollView, ActivityIndicator, Keyboard, PanResponder
+  ScrollView, PanResponder, ActivityIndicator
 } from 'react-native';
-import { MaterialIcons, Ionicons, FontAwesome6 } from '@expo/vector-icons';
-import * as Location from 'expo-location';
+import { MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { FontAwesome } from '@expo/vector-icons';
+
+import { fetchTripByDriver } from '../../services/tripService';
+import { fetchRute } from '../../services/ruteService';
+import { fetchCargoType } from '../../services/cargoTypeService';
+import { fetchUser } from '../../services/userService';
+
 
 const { width, height } = Dimensions.get('window');
 const EXPANDED_HEIGHT = Math.round(height * 0.91);
@@ -16,45 +22,42 @@ const SHEET_MAX = SHEET_TOTAL_MOVEMENT;
 
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 
-// Dummy data para historial
-const dummyTrips = [
-  {
-    id: 1,
-    origin: { latitude: 32.526284, longitude: -117.035865 },
-    stops: [{ latitude: 32.528, longitude: -117.030 }],
-    destination: { latitude: 32.532326, longitude: -116.961647 },
-    date: '2024-07-09T14:23:00Z'
-  },
-  {
-    id: 2,
-    origin: { latitude: 32.526284, longitude: -117.035865 },
-    stops: [],
-    destination: { latitude: 32.532326, longitude: -116.965 },
-    date: '2024-07-08T10:11:00Z'
+// Utilidad para convertir fecha a hora
+function formatDateHour(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
+}
+function formatKm(dist) {
+  if (!dist) return "0 km";
+  return `${(dist / 1000).toFixed(1)} km`;
+}
+
+// Dummy función para reverse geocoding (luego reemplazas por llamada real)
+const fakeReverseGeocode = (coords) => {
+  if (!coords) return { street: '', locality: '', city: '' };
+  if (coords[0] === -117.035865) {
+    return { street: 'Av. Diagonal 3108', locality: 'Miraflores', city: 'Tijuana' };
   }
-];
+  if (coords[0] === -116.961647) {
+    return { street: 'Calle Otay 150', locality: 'Otay Universidad', city: 'Tijuana' };
+  }
+  return { street: 'Dirección desconocida', locality: '', city: '' };
+};
 
-export default function CreateTripSheet({ onClose }) {
+export default function CreateTripSheet({ onClose, driverId }) {
   const [dragging, setDragging] = useState(false);
-  const [origin, setOrigin] = useState('');
-  const [stops, setStops] = useState(['']);
-  const [trips, setTrips] = useState([]);
-  const [loading, setLoading] = useState(false);
-
-  // Animación
   const translateY = useRef(new Animated.Value(SHEET_MAX)).current;
 
-  useEffect(() => {
-    // Animar apertura al montar
-    Animated.timing(translateY, {
-      toValue: SHEET_MIN,
-      duration: 190,
-      useNativeDriver: true,
-    }).start();
-    loadTripHistory();
-  }, []);
+  // --- ESTADOS REALES ---
+  const [trip, setTrip] = useState(null);
+  const [rute, setRute] = useState(null);
+  const [cargoType, setCargoType] = useState(null);
+  const [admin, setAdmin] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  // --------- PanResponder (dragbar arriba) ---------
+  // --- PanResponder
   const panResponder = useRef(
     PanResponder.create({
       onMoveShouldSetPanResponder: (evt, gesture) => Math.abs(gesture.dy) > 6,
@@ -72,11 +75,22 @@ export default function CreateTripSheet({ onClose }) {
         setDragging(false);
         let currY = clamp(translateY._value, SHEET_MIN, SHEET_MAX);
 
-        if (gesture.dy > 38 || currY > SHEET_MIN + 80) closeSheet();
-        else openSheet();
+        // Umbral para cerrar (ajusta a gusto)
+        if (gesture.dy > 120 || currY > SHEET_MIN + 120) {
+          closeSheet();
+        } else {
+          openSheet();
+        }
       },
     })
   ).current;
+  
+  console.log('driverId recibido:', driverId);
+
+
+  useEffect(() => {
+    openSheet();
+  }, []);
 
   const openSheet = () => {
     Animated.timing(translateY, {
@@ -85,7 +99,6 @@ export default function CreateTripSheet({ onClose }) {
       useNativeDriver: true,
     }).start();
   };
-
   const closeSheet = () => {
     Animated.timing(translateY, {
       toValue: SHEET_MAX,
@@ -96,56 +109,6 @@ export default function CreateTripSheet({ onClose }) {
     });
   };
 
-  // --------- Dummy historial y reverse geocode ---------
-  async function getPlaceName({ latitude, longitude }) {
-    try {
-      let placemarks = await Location.reverseGeocodeAsync({ latitude, longitude });
-      if (placemarks.length > 0) {
-        const { name, street, city } = placemarks[0];
-        let arr = [name, street, city].filter(Boolean);
-        return arr.join(', ') || `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
-      }
-      return `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
-    } catch (e) {
-      return `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
-    }
-  }
-  const loadTripHistory = async () => {
-    setLoading(true);
-    try {
-      const tripsWithNames = await Promise.all(dummyTrips.map(async trip => {
-        const originName = await getPlaceName(trip.origin);
-        const stopNames = await Promise.all(trip.stops.map(getPlaceName));
-        const destName = await getPlaceName(trip.destination);
-        return {
-          ...trip,
-          originName,
-          stopNames,
-          destName
-        };
-      }));
-      setTrips(tripsWithNames);
-    } catch (err) {
-      setTrips([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Añadir/quitar paradas
-  const handleAddStop = () => setStops([...stops, '']);
-  const handleStopChange = (val, idx) => {
-    const copy = [...stops];
-    copy[idx] = val;
-    setStops(copy);
-  };
-  const handleRemoveStop = idx => {
-    const copy = [...stops];
-    copy.splice(idx, 1);
-    setStops(copy);
-  };
-
-  // Estilo de dragbar cuando arrastras
   const dragBarAnimStyle = {
     opacity: dragging ? 0.7 : 1,
     transform: [{ scale: dragging ? 1.13 : 1 }],
@@ -154,6 +117,95 @@ export default function CreateTripSheet({ onClose }) {
     elevation: dragging ? 8 : 2,
   };
 
+  // --- CARGA LOS DATOS REALES ---
+  useEffect(() => {
+    let isMounted = true;
+    setLoading(true);
+    setError("");
+
+    fetchTripByDriver(driverId)
+      .then(tripData => {
+        if (!isMounted) return;
+        setTrip(tripData);
+
+        // Relacionados en paralelo
+        Promise.all([
+          fetchRute(tripData.IDRute),
+          fetchCargoType(tripData.IDCargoType),
+          fetchUser(tripData.IDAdmin),
+        ]).then(([ruteData, cargoData, adminData]) => {
+          if (!isMounted) return;
+          setRute(ruteData);
+          setCargoType(cargoData);
+          setAdmin(adminData);
+          setLoading(false);
+        }).catch(err => {
+          setError("Error cargando datos relacionados");
+          setLoading(false);
+        });
+      })
+      .catch(error => {
+        setError("No se pudo cargar el viaje asignado");
+        setLoading(false);
+      });
+
+    return () => { isMounted = false; };
+  }, [driverId]);
+
+  // --- PLACEHOLDERS mientras carga/error ---
+  if (loading) {
+    return (
+      <Animated.View
+        style={[
+          styles.sheet,
+          {
+            height: EXPANDED_HEIGHT,
+            bottom: 0,
+            left: 0,
+            right: 0,
+            position: 'absolute',
+            transform: [{ translateY }],
+            zIndex: 999,
+          },
+        ]}
+        pointerEvents="box-none"
+      >
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 48 }}>
+          <ActivityIndicator size="large" color="#1976D2" />
+          <Text style={{ marginTop: 15, color: "#1976D2", fontWeight: '500' }}>Cargando viaje...</Text>
+        </View>
+      </Animated.View>
+    );
+  }
+  if (error) {
+    return (
+      <Animated.View
+        style={[
+          styles.sheet,
+          {
+            height: EXPANDED_HEIGHT,
+            bottom: 0,
+            left: 0,
+            right: 0,
+            position: 'absolute',
+            transform: [{ translateY }],
+            zIndex: 999,
+          },
+        ]}
+        pointerEvents="box-none"
+      >
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 48 }}>
+          <Text style={{ color: "red", fontSize: 16 }}>{error}</Text>
+        </View>
+      </Animated.View>
+    );
+  }
+
+  // --- GEOCODING MOCK (reemplaza luego por tu función real)
+  const originAddr = rute ? fakeReverseGeocode(rute.origin?.coordinates) : { street: '', locality: '', city: '' };
+  const destAddr = rute ? fakeReverseGeocode(rute.destination?.coordinates) : { street: '', locality: '', city: '' };
+
+  // --- UI CON DATOS REALES ---
   return (
     <Animated.View
       style={[
@@ -171,112 +223,83 @@ export default function CreateTripSheet({ onClose }) {
       pointerEvents="box-none"
     >
       {/* DRAG BAR */}
-      <View
-        style={{ width: '100%', alignItems: 'center' }}
-        {...panResponder.panHandlers}
-      >
+      <View style={{ width: '100%', alignItems: 'center' }} {...panResponder.panHandlers}>
         <Animated.View style={[styles.dragBarClosed, dragBarAnimStyle]} />
       </View>
-      {/* CONTENIDO */}
+
       <ScrollView
         showsVerticalScrollIndicator={false}
         style={{ flex: 1 }}
         contentContainerStyle={{ paddingBottom: 18 }}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Inputs Origen, Paradas, Botones */}
+        {/* ----------- SECCION PRINCIPAL (ORIGEN/DESTINO) ----------- */}
         <View style={styles.cardSection}>
-          <View style={styles.inputRow}>
-            <MaterialIcons name="my-location" size={22} color="#1976D2" />
-            <TextInput
-              style={styles.input}
-              value={origin}
-              onChangeText={setOrigin}
-              placeholder="Ubicación actual"
-              placeholderTextColor="#6c7aa2"
-              editable
-            />
+          <Text style={styles.titleAssigned}>Datos del viaje asignado</Text>
+          <View style={styles.odWrapper}>
+            {/* ORIGEN */}
+            <View style={styles.odRow}>
+              <View style={styles.iconBox}>
+                <FontAwesome name="dot-circle-o" size={22} color="#1976D2" />
+              </View>
+              <View style={styles.odTextBox}>
+                <Text style={styles.odHour}>{formatDateHour(trip.scheduledDepartureDate)}</Text>
+                <Text style={styles.odStreet} numberOfLines={1}>{originAddr.street}</Text>
+                <Text style={styles.odLocality}>{originAddr.locality}, {originAddr.city}</Text>
+              </View>
+            </View>
+            {/* Línea vertical */}
+            <View style={styles.odLineContainer}>
+              <View style={styles.odLine} />
+            </View>
+            {/* DESTINO */}
+            <View style={styles.odRow}>
+              <View style={styles.iconBox}>
+                <MaterialIcons name="location-on" size={22} color="#43b45e" />
+              </View>
+              <View style={styles.odTextBox}>
+                <Text style={styles.odHour}>{formatDateHour(trip.scheduledArrivalDate)}</Text>
+                <Text style={styles.odStreet} numberOfLines={1}>{destAddr.street}</Text>
+                <Text style={styles.odLocality}>{destAddr.locality}, {destAddr.city}</Text>
+              </View>
+            </View>
           </View>
-          {stops.map((stop, idx) => (
-            <View key={idx} style={styles.inputRow}>
-              <MaterialIcons name="add-location-alt" size={22} color="#44b0d7" />
-              <TextInput
-                style={styles.input}
-                value={stop}
-                onChangeText={val => handleStopChange(val, idx)}
-                placeholder={`Añadir una parada`}
-                placeholderTextColor="#6c7aa2"
-                editable
-              />
-              {stops.length > 1 && (
-                <TouchableOpacity onPress={() => handleRemoveStop(idx)}>
-                  <MaterialIcons name="remove-circle-outline" size={20} color="#d03131" />
-                </TouchableOpacity>
-              )}
-            </View>
-          ))}
-          {/* Botón agregar parada */}
-          <TouchableOpacity style={styles.addStopBtn} onPress={handleAddStop}>
-            <MaterialIcons name="add" size={18} color="#1976D2" />
-            <Text style={styles.addStopText}>Añadir otra parada</Text>
-          </TouchableOpacity>
-          {/* Botón de crear ruta */}
-          <TouchableOpacity style={styles.routeBtn} onPress={() => alert('Funcionalidad pendiente: Crear ruta')}>
-            <MaterialIcons name="alt-route" size={28} color="#fff" style={{ marginRight: 8 }} />
-            <Text style={styles.routeBtnText}>Ruta</Text>
+          <TouchableOpacity
+            style={styles.routeBtn}
+            onPress={() => alert('Iniciar viaje')}
+          >
+            <MaterialIcons name="flag" size={24} color="#fff" style={{ marginRight: 8 }} />
+            <Text style={styles.routeBtnText}>Iniciar viaje</Text>
           </TouchableOpacity>
         </View>
-
-        {/* Accesos rápidos debajo */}
-        <View style={styles.quickActions}>
-          <TouchableOpacity style={styles.quickActionBtn} onPress={() => alert('Próximamente: Configuración del viaje')}>
-            <Ionicons name="settings-outline" size={24} color="#1976D2" />
-            <Text style={styles.quickActionText}>Config. del viaje</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.quickActionBtn} onPress={() => alert('Próximamente: Editar camión')}>
-            <MaterialIcons name="edit-road" size={24} color="#1976D2" />
-            <Text style={styles.quickActionText}>Editar camión</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.quickActionBtn} onPress={() => alert('Próximamente: Asignar usuario')}>
-            <FontAwesome6 name="user-plus" size={22} color="#1976D2" />
-            <Text style={styles.quickActionText}>Asignar usuario</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Historial de viajes recientes */}
-        <View style={styles.historySection}>
-          <Text style={styles.sectionTitle}>Viajes recientes</Text>
-          <View style={styles.divider} />
-          {loading ? (
-            <ActivityIndicator size="small" color="#1976D2" style={{ marginTop: 30 }} />
-          ) : trips.length === 0 ? (
-            <View style={styles.noDataContainer}>
-              <MaterialIcons name="map" size={72} color="#1976D2" style={{ opacity: 0.13 }} />
-              <Text style={styles.noDataText}>Aún no hay viajes recientes</Text>
-            </View>
-          ) : (
-            <ScrollView style={{ maxHeight: 190 }}>
-              {trips.map((trip, idx) => (
-                <View key={trip.id} style={styles.tripCard}>
-                  <View style={styles.tripLine}>
-                    <MaterialIcons name="radio-button-checked" size={18} color="#45d07e" style={{ marginRight: 8 }} />
-                    <Text numberOfLines={1} style={styles.tripText}>{trip.originName}</Text>
-                  </View>
-                  {trip.stopNames.map((s, i) => (
-                    <View key={i} style={styles.tripLine}>
-                      <MaterialIcons name="stop-circle" size={16} color="#f4ba45" style={{ marginLeft: 4, marginRight: 8 }} />
-                      <Text numberOfLines={1} style={styles.tripText}>{s}</Text>
-                    </View>
-                  ))}
-                  <View style={styles.tripLine}>
-                    <MaterialIcons name="location-on" size={18} color="#1976D2" style={{ marginRight: 8 }} />
-                    <Text numberOfLines={1} style={styles.tripText}>{trip.destName}</Text>
-                  </View>
-                  {idx < trips.length - 1 && <View style={styles.tripDivider} />}
-                </View>
-              ))}
-            </ScrollView>
-          )}
+        {/* ----------- BLOQUE RESUMEN ----------- */}
+        <View style={styles.infoTripSection}>
+          {/* Estado */}
+          <View style={styles.infoTripBlock}>
+            <MaterialCommunityIcons name="check-circle" size={26} color="#2e5fc3" />
+            <Text style={styles.infoTripTitle}>Estado</Text>
+            <Text style={styles.infoTripValue}>{trip.status}</Text>
+          </View>
+          {/* Distancia */}
+          <View style={styles.infoTripBlock}>
+            <MaterialCommunityIcons name="map-marker-distance" size={26} color="#45d07e" />
+            <Text style={styles.infoTripTitle}>Distancia</Text>
+            <Text style={styles.infoTripValue}>{formatKm(trip.estimatedDistance)}</Text>
+          </View>
+          {/* Tipo de carga */}
+          <View style={styles.infoTripBlock}>
+            <MaterialCommunityIcons name="cube-outline" size={26} color="#f2b93b" />
+            <Text style={styles.infoTripTitle}>Tipo de carga</Text>
+            <Text style={styles.infoTripValue}>{cargoType?.name}</Text>
+          </View>
+          {/* Asignado por */}
+          <View style={styles.infoTripBlock}>
+            <MaterialCommunityIcons name="account-tie" size={26} color="#d99157" />
+            <Text style={styles.infoTripTitle}>Asignado por</Text>
+            <Text style={styles.infoTripValue} numberOfLines={2}>
+              {admin?.name} {admin?.lastName}
+            </Text>
+          </View>
         </View>
       </ScrollView>
     </Animated.View>
@@ -304,7 +327,7 @@ const styles = StyleSheet.create({
   cardSection: {
     backgroundColor: '#fff',
     marginHorizontal: 7,
-    padding: 14,
+    padding: 16,
     borderRadius: 18,
     shadowColor: "#1976D2",
     shadowOpacity: 0.06,
@@ -312,49 +335,76 @@ const styles = StyleSheet.create({
     elevation: 2,
     marginBottom: 14,
   },
-  inputRow: {
+  titleAssigned: {
+    fontWeight: 'bold',
+    fontSize: 22,
+    color: '#162557',
+    marginBottom: 24,
+    letterSpacing: 0.1,
+  },
+  odWrapper: {
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    marginBottom: 8,
+    marginLeft: 3,
+    minHeight: 112,
+    justifyContent: 'center',
+  },
+  odRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
-    backgroundColor: '#f2f6fd',
-    borderRadius: 11,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    marginBottom: 0,
+    minHeight: 54,
+    maxWidth: '95%',
   },
-  input: {
+  iconBox: {
+    width: 36,
+    alignItems: 'center',
+    marginRight: 4,
+  },
+  odTextBox: {
     flex: 1,
-    marginLeft: 8,
-    fontSize: 16,
-    color: '#17223b',
-    paddingVertical: 4,
-    backgroundColor: 'transparent',
+    flexDirection: 'column',
   },
-  addStopBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
+  odHour: {
+    fontSize: 14.3,
+    fontWeight: '600',
+    color: '#5871c6',
+    marginBottom: 0,
     marginTop: 2,
-    marginBottom: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 5,
-    borderRadius: 8,
-    backgroundColor: '#eaf4fb',
   },
-  addStopText: {
-    marginLeft: 4,
-    color: '#1976D2',
-    fontWeight: '500',
-    fontSize: 15,
+  odStreet: {
+    fontWeight: 'bold',
+    color: '#222b45',
+    fontSize: 17,
+    marginBottom: 1,
+  },
+  odLocality: {
+    fontSize: 14.1,
+    color: '#8e99af',
+    fontWeight: '400',
+  },
+  odLineContainer: {
+    alignItems: 'center',
+    width: 32,
+    marginVertical: -4,
+  },
+  odLine: {
+    width: 2.5,
+    backgroundColor: '#dee6f3',
+    height: 29,
+    alignSelf: 'center',
+    borderRadius: 3,
   },
   routeBtn: {
     backgroundColor: '#1976D2',
-    borderRadius: 16,
+    borderRadius: 15,
     flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'flex-end',
     paddingVertical: 7,
     paddingHorizontal: 24,
-    marginTop: 7,
+    marginTop: 25,
     shadowColor: "#1976D2",
     shadowOpacity: 0.12,
     shadowRadius: 7,
@@ -363,100 +413,51 @@ const styles = StyleSheet.create({
   routeBtnText: {
     color: '#fff',
     fontWeight: '600',
-    fontSize: 18,
-    letterSpacing: 0.2,
+    fontSize: 17,
+    letterSpacing: 0.1,
   },
-  quickActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    backgroundColor: '#f2f6fd',
-    marginHorizontal: 7,
-    borderRadius: 15,
-    padding: 6,
-    marginBottom: 9,
-    gap: 4,
-  },
-  quickActionBtn: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: 9,
-    borderRadius: 10,
-    backgroundColor: '#fff',
-    marginHorizontal: 4,
-    shadowColor: "#1976D2",
-    shadowOpacity: 0.04,
-    shadowRadius: 5,
-    elevation: 1,
-  },
-  quickActionText: {
+  infoTripSection: {
+  flexDirection: 'row',
+  flexWrap: 'wrap',          // Permite el salto de línea
+  justifyContent: 'space-between',
+  backgroundColor: '#f2f6fd',
+  marginHorizontal: 7,
+  borderRadius: 14,
+  padding: 10,
+  marginBottom: 15,
+  marginTop: 10,
+  gap: 0,                    // Puedes jugar con este valor
+},
+infoTripBlock: {
+  width: '48%',              // 2 por fila (con gap o margin entre ellos)
+  alignItems: 'center',
+  paddingVertical: 12,
+  borderRadius: 11,
+  backgroundColor: '#fff',
+  marginBottom: 12,
+  // marginHorizontal: 4,     // Quita o ajusta según se vea
+  shadowColor: "#1976D2",
+  shadowOpacity: 0.04,
+  shadowRadius: 5,
+  elevation: 1,
+  minWidth: 90,
+  maxWidth: '49%',
+  marginTop: 10,
+},
+
+  infoTripTitle: {
     marginTop: 5,
-    fontSize: 13.2,
+    fontSize: 13.5,
     fontWeight: '500',
     color: '#25346e',
     textAlign: 'center',
-  },
-  historySection: {
-    marginHorizontal: 7,
-    backgroundColor: '#fff',
-    borderRadius: 17,
-    padding: 14,
-    marginTop: 5,
-    flex: 1,
-    minHeight: 180,
-    shadowColor: "#1976D2",
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 1,
-  },
-  sectionTitle: {
-    fontWeight: '700',
-    fontSize: 16,
-    color: '#182654',
     marginBottom: 2,
   },
-  divider: {
-    height: 1.5,
-    backgroundColor: '#e8e9f3',
-    marginVertical: 6,
-    marginHorizontal: -8,
-    borderRadius: 2,
-  },
-  noDataContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 25,
-    opacity: 0.8,
-  },
-  noDataText: {
-    fontSize: 16,
-    color: '#8896bb',
-    marginTop: 10,
-    fontWeight: '500',
+  infoTripValue: {
+    fontWeight: '700',
+    color: '#17223b',
+    fontSize: 14.6,
     textAlign: 'center',
+    marginBottom: 2,
   },
-  tripCard: {
-    paddingVertical: 8,
-    paddingHorizontal: 2,
-    marginBottom: 4,
-  },
-  tripLine: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 2,
-    minHeight: 22,
-  },
-  tripText: {
-    fontSize: 15,
-    color: '#182654',
-    flex: 1,
-    flexShrink: 1,
-    fontWeight: '400',
-  },
-  tripDivider: {
-    height: 1,
-    backgroundColor: '#e8e9f3',
-    marginVertical: 5,
-    borderRadius: 2,
-    marginLeft: 22,
-  }
 });

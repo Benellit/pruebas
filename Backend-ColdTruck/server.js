@@ -18,6 +18,9 @@ app.use('/user', require('./routes-Endpoints/usuarios'));
 app.use('/tracking', require('./routes-Endpoints/tracking')); // Direccion en tiempo real (No en tiempo real):D
 app.use('/', require('./routes-Endpoints/auth')); // Esto habilita POST /login
 app.use('/driver', require('./routes-Endpoints/driver'));
+app.use('/trip', require('./routes-Endpoints/trip'));
+app.use('/rute', require('./routes-Endpoints/rute'));
+app.use('/cargoType', require('./routes-Endpoints/cargoType'));
 
 
 
