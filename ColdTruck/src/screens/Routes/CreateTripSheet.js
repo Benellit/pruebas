@@ -11,6 +11,7 @@ import { fetchRute } from '../../services/ruteService';
 import { fetchCargoType } from '../../services/cargoTypeService';
 import { fetchUser } from '../../services/userService';
 
+import { reverseGeocodeOSM } from '../../services/geocodeService';
 
 const { width, height } = Dimensions.get('window');
 const EXPANDED_HEIGHT = Math.round(height * 0.91);
@@ -22,7 +23,6 @@ const SHEET_MAX = SHEET_TOTAL_MOVEMENT;
 
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 
-// Utilidad para convertir fecha a hora
 function formatDateHour(dateStr) {
   if (!dateStr) return '';
   const d = new Date(dateStr);
@@ -33,31 +33,19 @@ function formatKm(dist) {
   return `${(dist / 1000).toFixed(1)} km`;
 }
 
-// Dummy función para reverse geocoding (luego reemplazas por llamada real)
-const fakeReverseGeocode = (coords) => {
-  if (!coords) return { street: '', locality: '', city: '' };
-  if (coords[0] === -117.035865) {
-    return { street: 'Av. Diagonal 3108', locality: 'Miraflores', city: 'Tijuana' };
-  }
-  if (coords[0] === -116.961647) {
-    return { street: 'Calle Otay 150', locality: 'Otay Universidad', city: 'Tijuana' };
-  }
-  return { street: 'Dirección desconocida', locality: '', city: '' };
-};
-
 export default function CreateTripSheet({ onClose, driverId }) {
   const [dragging, setDragging] = useState(false);
   const translateY = useRef(new Animated.Value(SHEET_MAX)).current;
 
-  // --- ESTADOS REALES ---
   const [trip, setTrip] = useState(null);
   const [rute, setRute] = useState(null);
   const [cargoType, setCargoType] = useState(null);
   const [admin, setAdmin] = useState(null);
+  const [originAddr, setOriginAddr] = useState({ street: '', locality: '', city: '' });
+  const [destAddr, setDestAddr] = useState({ street: '', locality: '', city: '' });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // --- PanResponder
   const panResponder = useRef(
     PanResponder.create({
       onMoveShouldSetPanResponder: (evt, gesture) => Math.abs(gesture.dy) > 6,
@@ -75,7 +63,6 @@ export default function CreateTripSheet({ onClose, driverId }) {
         setDragging(false);
         let currY = clamp(translateY._value, SHEET_MIN, SHEET_MAX);
 
-        // Umbral para cerrar (ajusta a gusto)
         if (gesture.dy > 120 || currY > SHEET_MIN + 120) {
           closeSheet();
         } else {
@@ -84,9 +71,6 @@ export default function CreateTripSheet({ onClose, driverId }) {
       },
     })
   ).current;
-  
-  console.log('driverId recibido:', driverId);
-
 
   useEffect(() => {
     openSheet();
@@ -109,35 +93,44 @@ export default function CreateTripSheet({ onClose, driverId }) {
     });
   };
 
-  const dragBarAnimStyle = {
-    opacity: dragging ? 0.7 : 1,
-    transform: [{ scale: dragging ? 1.13 : 1 }],
-    shadowOpacity: dragging ? 0.23 : 0.11,
-    shadowRadius: dragging ? 9 : 7,
-    elevation: dragging ? 8 : 2,
-  };
-
-  // --- CARGA LOS DATOS REALES ---
   useEffect(() => {
     let isMounted = true;
     setLoading(true);
     setError("");
+    setOriginAddr({ street: '', locality: '', city: '' });
+    setDestAddr({ street: '', locality: '', city: '' });
+
+    if (!driverId) {
+      setError('No se encontró el ID del conductor.');
+      setLoading(false);
+      return;
+    }
 
     fetchTripByDriver(driverId)
       .then(tripData => {
         if (!isMounted) return;
         setTrip(tripData);
 
-        // Relacionados en paralelo
         Promise.all([
           fetchRute(tripData.IDRute),
           fetchCargoType(tripData.IDCargoType),
           fetchUser(tripData.IDAdmin),
-        ]).then(([ruteData, cargoData, adminData]) => {
+        ]).then(async ([ruteData, cargoData, adminData]) => {
           if (!isMounted) return;
           setRute(ruteData);
           setCargoType(cargoData);
           setAdmin(adminData);
+
+          // --- Aquí reverse geocode real ---
+          if (ruteData?.origin?.coordinates) {
+            const addr = await reverseGeocodeOSM(ruteData.origin.coordinates);
+            if (isMounted) setOriginAddr(addr);
+          }
+          if (ruteData?.destination?.coordinates) {
+            const addr = await reverseGeocodeOSM(ruteData.destination.coordinates);
+            if (isMounted) setDestAddr(addr);
+          }
+
           setLoading(false);
         }).catch(err => {
           setError("Error cargando datos relacionados");
@@ -152,7 +145,6 @@ export default function CreateTripSheet({ onClose, driverId }) {
     return () => { isMounted = false; };
   }, [driverId]);
 
-  // --- PLACEHOLDERS mientras carga/error ---
   if (loading) {
     return (
       <Animated.View
@@ -201,11 +193,6 @@ export default function CreateTripSheet({ onClose, driverId }) {
     );
   }
 
-  // --- GEOCODING MOCK (reemplaza luego por tu función real)
-  const originAddr = rute ? fakeReverseGeocode(rute.origin?.coordinates) : { street: '', locality: '', city: '' };
-  const destAddr = rute ? fakeReverseGeocode(rute.destination?.coordinates) : { street: '', locality: '', city: '' };
-
-  // --- UI CON DATOS REALES ---
   return (
     <Animated.View
       style={[
@@ -222,9 +209,14 @@ export default function CreateTripSheet({ onClose, driverId }) {
       ]}
       pointerEvents="box-none"
     >
-      {/* DRAG BAR */}
       <View style={{ width: '100%', alignItems: 'center' }} {...panResponder.panHandlers}>
-        <Animated.View style={[styles.dragBarClosed, dragBarAnimStyle]} />
+        <Animated.View style={[styles.dragBarClosed, {
+          opacity: dragging ? 0.7 : 1,
+          transform: [{ scale: dragging ? 1.13 : 1 }],
+          shadowOpacity: dragging ? 0.23 : 0.11,
+          shadowRadius: dragging ? 9 : 7,
+          elevation: dragging ? 8 : 2,
+        }]} />
       </View>
 
       <ScrollView
@@ -233,7 +225,6 @@ export default function CreateTripSheet({ onClose, driverId }) {
         contentContainerStyle={{ paddingBottom: 18 }}
         keyboardShouldPersistTaps="handled"
       >
-        {/* ----------- SECCION PRINCIPAL (ORIGEN/DESTINO) ----------- */}
         <View style={styles.cardSection}>
           <Text style={styles.titleAssigned}>Datos del viaje asignado</Text>
           <View style={styles.odWrapper}>
@@ -248,7 +239,6 @@ export default function CreateTripSheet({ onClose, driverId }) {
                 <Text style={styles.odLocality}>{originAddr.locality}, {originAddr.city}</Text>
               </View>
             </View>
-            {/* Línea vertical */}
             <View style={styles.odLineContainer}>
               <View style={styles.odLine} />
             </View>
@@ -272,27 +262,22 @@ export default function CreateTripSheet({ onClose, driverId }) {
             <Text style={styles.routeBtnText}>Iniciar viaje</Text>
           </TouchableOpacity>
         </View>
-        {/* ----------- BLOQUE RESUMEN ----------- */}
         <View style={styles.infoTripSection}>
-          {/* Estado */}
           <View style={styles.infoTripBlock}>
             <MaterialCommunityIcons name="check-circle" size={26} color="#2e5fc3" />
             <Text style={styles.infoTripTitle}>Estado</Text>
             <Text style={styles.infoTripValue}>{trip.status}</Text>
           </View>
-          {/* Distancia */}
           <View style={styles.infoTripBlock}>
             <MaterialCommunityIcons name="map-marker-distance" size={26} color="#45d07e" />
             <Text style={styles.infoTripTitle}>Distancia</Text>
             <Text style={styles.infoTripValue}>{formatKm(trip.estimatedDistance)}</Text>
           </View>
-          {/* Tipo de carga */}
           <View style={styles.infoTripBlock}>
             <MaterialCommunityIcons name="cube-outline" size={26} color="#f2b93b" />
             <Text style={styles.infoTripTitle}>Tipo de carga</Text>
             <Text style={styles.infoTripValue}>{cargoType?.name}</Text>
           </View>
-          {/* Asignado por */}
           <View style={styles.infoTripBlock}>
             <MaterialCommunityIcons name="account-tie" size={26} color="#d99157" />
             <Text style={styles.infoTripTitle}>Asignado por</Text>

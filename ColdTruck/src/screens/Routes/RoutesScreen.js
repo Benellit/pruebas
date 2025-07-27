@@ -1,4 +1,5 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useContext } from 'react';
+
 import { View, StyleSheet, TouchableOpacity, Alert, Text, Dimensions, StyleSheet as RNStyleSheet, useColorScheme } from 'react-native';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -11,7 +12,7 @@ import { fetchRoute } from '../../services/routeService'; // Debe estar implemen
 import FloatingSearchBar from './FloatingSearchBar';
 import CreateTripSheet from './CreateTripSheet';
 import RoutesSheet from './RoutesSheet';
-
+import { AuthContext } from '../../context/AuthContext';
 
 
 
@@ -51,6 +52,7 @@ const themeColors = {
 
 
 export default function RoutesScreen() {
+  const { user } = useContext(AuthContext);
   const colorScheme = useColorScheme();
   const [theme, setTheme] = useState(colorScheme || 'light');
   const toggleTheme = () => setTheme(prev => (prev === 'light' ? 'dark' : 'light'));
@@ -242,7 +244,12 @@ export default function RoutesScreen() {
       </View>
 
       {!showCreateTrip && <FloatingSearchBar theme={theme} t={t} />}
-      {showCreateTrip && <CreateTripSheet onClose={() => setShowCreateTrip(false)} />}
+      {showCreateTrip && (
+        <CreateTripSheet
+          driverId={user?.id}
+          onClose={() => setShowCreateTrip(false)}
+        />
+      )}
       {showRoutesSheet && <RoutesSheet onClose={() => setShowRoutesSheet(false)} />}
 
 
