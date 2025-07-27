@@ -12,8 +12,10 @@ export async function fetchTripByDriver(idDriver) {
   return res.json();
 }
 
+
 export async function fetchTripsForDriver(idDriver) {
-  const res = await fetch(`${conexion}/trip?IDDriver=${idDriver}`);
+  const res = await fetch(`${conexion}/trip/driver/${idDriver}`);
   if (!res.ok) throw new Error('No se pudieron obtener los viajes');
-  return res.json();
+  const data = await res.json();
+  return Array.isArray(data) ? data : data ? [data] : [];
 }

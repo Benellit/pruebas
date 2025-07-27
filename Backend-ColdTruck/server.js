@@ -21,6 +21,7 @@ app.use('/driver', require('./routes-Endpoints/driver'));
 app.use('/trip', require('./routes-Endpoints/trip'));
 app.use('/rute', require('./routes-Endpoints/rute'));
 app.use('/cargoType', require('./routes-Endpoints/cargoType'));
+app.use('/truck', require('./routes-Endpoints/truck'));
 
 
 
