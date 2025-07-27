@@ -11,3 +11,9 @@ export async function fetchTripByDriver(idDriver) {
   if (!res.ok) throw new Error('No hay viaje asignado');
   return res.json();
 }
+
+export async function fetchTripsForDriver(idDriver) {
+  const res = await fetch(`${conexion}/trip?IDDriver=${idDriver}`);
+  if (!res.ok) throw new Error('No se pudieron obtener los viajes');
+  return res.json();
+}

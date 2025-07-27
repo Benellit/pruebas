@@ -1,28 +1,65 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList } from 'react-native';
+import React, { useContext, useEffect, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, ActivityIndicator } from 'react-native';
 import { MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { AuthContext } from '../../context/AuthContext';
+import { fetchTripsForDriver } from '../../services/tripService';
+import { fetchTruck } from '../../services/truckService';
+import { fetchRute } from '../../services/ruteService';
+import { fetchUser } from '../../services/userService';
+import { fetchCargoType } from '../../services/cargoTypeService';
 
-const truckStatus = {
-  onRoute: 'On route',
-  finished: 'Finished',
-  pause: 'Paused',
+const statusLabels = {
+  'In Transit': 'On route',
+  'Completed': 'Finished',
+  'Paused': 'Paused'
 };
 
-const trucksData = [
-  { id: 1, number: "TX-8234", destination: "Tijuana", temperature: "4.6°C", driver: "Juan Perez", status: "onRoute", plates: "ABC123" },
-  { id: 2, number: "JKL-556", destination: "Mexicali", temperature: "--", driver: "Ana Gomez", status: "pause", plates: "DEF456" },
-  { id: 3, number: "LOG-782", destination: "Rosarito", temperature: "7.1°C", driver: "Carlos Ruiz", status: "finished", plates: "XYZ789" },
-];
+export default function HomeScreen({ navigation }) {
+  const { user } = useContext(AuthContext);
+  const userName = user?.name || 'Driver';
+  const [tab, setTab] = useState('all');
+  const [loading, setLoading] = useState(true);
+  const [trips, setTrips] = useState([]);
 
-export default function HomeScreen({ navigation, route }) {
-  const userName = route?.params?.userName || "Mario";
-  const [tab, setTab] = React.useState('all');
-  const filtered = trucksData.filter(truck =>
+  console.log('user:', user);
+
+  
+
+  useEffect(() => {
+    if (!user?.id) return;
+    let isMounted = true;
+    setLoading(true);
+    fetchTripsForDriver(user.id)
+      .then(async data => {
+        console.log('data de backend:', data);
+        if (!isMounted) return;
+        const enriched = await Promise.all(data.map(async (trip) => {
+          try {
+            const [truck, rute, admin, cargoType] = await Promise.all([
+              fetchTruck(trip.IDTruck),
+              fetchRute(trip.IDRute),
+              fetchUser(trip.IDAdmin),
+              fetchCargoType(trip.IDCargoType)
+            ]);
+            return { ...trip, truck, rute, admin, cargoType };
+          } catch {
+            return trip;
+          }
+        }));
+        setTrips(enriched);
+        console.log('enriched trips:', enriched);
+      })
+      .catch(() => setTrips([]))
+      .finally(() => isMounted && setLoading(false));
+    return () => { isMounted = false; };
+  }, [user]);
+
+  const filtered = trips.filter(trip =>
     tab === 'all'
       ? true
       : tab === 'onRoute'
-        ? truck.status === 'onRoute'
-        : truck.status === 'finished'
+        ? trip.status === 'In Transit'
+        : trip.status === 'Completed'
   );
 
   return (
@@ -50,33 +87,37 @@ export default function HomeScreen({ navigation, route }) {
         <TabBtn label="Finished" active={tab === 'finished'} onPress={() => setTab('finished')} />
       </View>
       {/* Truck Cards */}
-      <FlatList
-        data={filtered}
-        style={{ flex: 1 }}
-        keyExtractor={item => item.id + ""}
-        contentContainerStyle={{ paddingVertical: 8 }}
-        renderItem={({ item }) => (
-          <View style={styles.card}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 5 }}>
-              <MaterialCommunityIcons name="truck" size={26} color="#1976d2" />
-              <Text style={styles.cardTitle}>{item.number} - {item.plates}</Text>
-              <Text style={[
-                styles.status,
-                item.status === 'onRoute' ? styles.onRoute :
-                item.status === 'finished' ? styles.finished : styles.paused
-              ]}>
-                {truckStatus[item.status] || item.status}
-              </Text>
+      {loading ? (
+        <ActivityIndicator style={{ marginTop: 20 }} />
+      ) : (
+        <FlatList
+          data={filtered}
+          style={{ flex: 1 }}
+          keyExtractor={item => String(item._id)}
+          contentContainerStyle={{ paddingVertical: 8 }}
+          renderItem={({ item }) => (
+            <View style={styles.card}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 5 }}>
+                <MaterialCommunityIcons name="truck" size={26} color="#1976d2" />
+                <Text style={styles.cardTitle}>{item._id} - {item.truck?.plates}</Text>
+                <Text style={[
+                  styles.status,
+                  item.status === 'In Transit' ? styles.onRoute :
+                  item.status === 'Completed' ? styles.finished : styles.paused
+                ]}>
+                  {statusLabels[item.status] || item.status}
+                </Text>
+              </View>
+              <Text style={styles.cardDest}>Ruta: {item.rute?.name}</Text>
+              <Text style={styles.cardDriver}>Asignado por: {item.admin?.name}</Text>
+              <Text style={styles.cardTemp}>Tipo de carga: {item.cargoType?.name}</Text>
             </View>
-            <Text style={styles.cardDest}>Destination: {item.destination}</Text>
-            <Text style={styles.cardDriver}>Driver: {item.driver}</Text>
-            <Text style={styles.cardTemp}>Temperature: {item.temperature}</Text>
-          </View>
-        )}
-        ListEmptyComponent={
-          <Text style={{ color: "#999", textAlign: 'center', marginTop: 16 }}>No trucks</Text>
-        }
-      />
+          )}
+          ListEmptyComponent={
+            <Text style={{ color: "#999", textAlign: 'center', marginTop: 16 }}>No trips</Text>
+          }
+        />
+      )}
     </View>
   );
 }
