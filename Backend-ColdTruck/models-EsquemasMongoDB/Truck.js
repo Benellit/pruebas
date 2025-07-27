@@ -1,7 +1,7 @@
+// models-EsquemasMongoDB/Truck.js
 const mongoose = require('mongoose');
-
 const truckSchema = new mongoose.Schema({
-  number: { type: Number, required: true }, // ID del camión
+  _id: { type: Number, required: true },
   plates: String,
   status: String,
   loadCapacity: Number,
@@ -9,5 +9,4 @@ const truckSchema = new mongoose.Schema({
   IDBrand: Number,
   IDModel: Number,
 });
-
 module.exports = mongoose.model('Truck', truckSchema, 'truck');

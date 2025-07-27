@@ -17,7 +17,7 @@ exports.obtenerTripPorDriver = async (req, res) => {
   try {
     const trips = await Trip.find({ IDDriver: Number(req.params.idDriver) })
       .sort({ scheduledDepartureDate: -1 });
-    if (!trips || trips.length === 0) return res.status(404).json({ msg: 'No trips found for this driver' });
+    if (!trips || trips.length === 0) return res.status(404).json({ msg: 'Trip not found' });
     res.json(trips);
   } catch (err) {
     console.error(err);
