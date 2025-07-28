@@ -94,56 +94,77 @@ export default function CreateTripSheet({ onClose, driverId }) {
   };
 
   useEffect(() => {
-    let isMounted = true;
-    setLoading(true);
-    setError("");
-    setOriginAddr({ street: '', locality: '', city: '' });
-    setDestAddr({ street: '', locality: '', city: '' });
+  let isMounted = true;
+  setLoading(true);
+  setError("");
+  setOriginAddr({ street: '', locality: '', city: '' });
+  setDestAddr({ street: '', locality: '', city: '' });
 
-    if (!driverId) {
-      setError('No se encontró el ID del conductor.');
-      setLoading(false);
-      return;
-    }
+  if (!driverId) {
+    setError('No se encontró el ID del conductor.');
+    setLoading(false);
+    return;
+  }
 
-    fetchTripByDriver(driverId)
-      .then(tripData => {
+  fetchTripByDriver(driverId)
+    .then(tripArr => {
+      //  usa el primer viaje si es array, o el objeto si no
+      const tripData = Array.isArray(tripArr) ? tripArr[0] : tripArr;
+      console.log('tripData:', tripData);
+
+      if (!isMounted) return;
+
+      if (!tripData) {
+        setError('No se encontró viaje asignado.');
+        setLoading(false);
+        return;
+      }
+     
+      if (
+        tripData.IDRute === undefined ||
+        tripData.IDCargoType === undefined ||
+        tripData.IDAdmin === undefined
+      ) {
+        setError('Faltan datos en el viaje asignado');
+        setLoading(false);
+        return;
+      }
+      setTrip(tripData);
+
+      Promise.all([
+        fetchRute(tripData.IDRute),
+        fetchCargoType(tripData.IDCargoType),
+        fetchUser(tripData.IDAdmin),
+      ]).then(async ([ruteData, cargoData, adminData]) => {
         if (!isMounted) return;
-        setTrip(tripData);
+        setRute(ruteData);
+        setCargoType(cargoData);
+        setAdmin(adminData);
 
-        Promise.all([
-          fetchRute(tripData.IDRute),
-          fetchCargoType(tripData.IDCargoType),
-          fetchUser(tripData.IDAdmin),
-        ]).then(async ([ruteData, cargoData, adminData]) => {
-          if (!isMounted) return;
-          setRute(ruteData);
-          setCargoType(cargoData);
-          setAdmin(adminData);
+        // --- reverse geocode  ---
+        if (ruteData?.origin?.coordinates) {
+          const addr = await reverseGeocodeOSM(ruteData.origin.coordinates);
+          if (isMounted) setOriginAddr(addr);
+        }
+        if (ruteData?.destination?.coordinates) {
+          const addr = await reverseGeocodeOSM(ruteData.destination.coordinates);
+          if (isMounted) setDestAddr(addr);
+        }
 
-          // --- Aquí reverse geocode real ---
-          if (ruteData?.origin?.coordinates) {
-            const addr = await reverseGeocodeOSM(ruteData.origin.coordinates);
-            if (isMounted) setOriginAddr(addr);
-          }
-          if (ruteData?.destination?.coordinates) {
-            const addr = await reverseGeocodeOSM(ruteData.destination.coordinates);
-            if (isMounted) setDestAddr(addr);
-          }
-
-          setLoading(false);
-        }).catch(err => {
-          setError("Error cargando datos relacionados");
-          setLoading(false);
-        });
-      })
-      .catch(error => {
-        setError("No se pudo cargar el viaje asignado");
+        setLoading(false);
+      }).catch(err => {
+        setError("Error cargando datos relacionados");
         setLoading(false);
       });
+    })
+    .catch(error => {
+      setError("No se pudo cargar el viaje asignado");
+      setLoading(false);
+    });
 
-    return () => { isMounted = false; };
-  }, [driverId]);
+  return () => { isMounted = false; };
+}, [driverId]);
+
 
   if (loading) {
     return (
