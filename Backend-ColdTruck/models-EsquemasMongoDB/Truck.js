@@ -1,4 +1,4 @@
-// models-EsquemasMongoDB/Truck.js
+
 const mongoose = require('mongoose');
 const truckSchema = new mongoose.Schema({
   _id: { type: Number, required: true },

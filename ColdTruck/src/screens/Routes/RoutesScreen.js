@@ -78,6 +78,8 @@ export default function RoutesScreen() {
   const [isRouteMode, setIsRouteMode] = useState(false);
   const [routeMarkers, setRouteMarkers] = useState([]); // máximo 2 puntos
   const [route, setRoute] = useState([]); // coordenadas de la ruta
+  const [autoRouteMarkers, setAutoRouteMarkers] = useState([]);
+  const [autoRoute, setAutoRoute] = useState([]);
   const [showCreateTrip, setShowCreateTrip] = useState(false);
 
 
@@ -97,6 +99,8 @@ export default function RoutesScreen() {
         .catch(err => Alert.alert('Error', err.message));
     } else {
       setRoute([]); // Limpia si no hay dos puntos
+      setAutoRouteMarkers([]);
+      setAutoRoute([]);
     }
   }, [routeMarkers]);
 
@@ -108,6 +112,35 @@ export default function RoutesScreen() {
     Alert.alert("API Ruta optimizada", "Toca dos puntos en el mapa para trazar la ruta.");
   };
 
+   const showAssignedRoute = async (originCoords, destinationCoords) => {
+    if (!originCoords || !destinationCoords) return;
+    const start = { latitude: originCoords[1], longitude: originCoords[0] };
+    const end = { latitude: destinationCoords[1], longitude: destinationCoords[0] };
+    setIsRouteMode(false);
+    setRouteMarkers([]);
+    setRoute([]);
+    setAutoRouteMarkers([start, end]);
+    try {
+      const pts = await fetchRoute(start, end);
+      setAutoRoute(pts);
+    } catch (err) {
+      Alert.alert('Error', err.message);
+    }
+    const midLat = (start.latitude + end.latitude) / 2;
+    const midLng = (start.longitude + end.longitude) / 2;
+    const latDelta = Math.max(Math.abs(start.latitude - end.latitude) * 1.8, 0.05);
+    const lngDelta = Math.max(Math.abs(start.longitude - end.longitude) * 1.8, 0.05);
+    const region = {
+      latitude: midLat,
+      longitude: midLng,
+      latitudeDelta: latDelta,
+      longitudeDelta: lngDelta,
+    };
+    setMapRegion(region);
+    if (mapRef.current && mapRef.current.animateToRegion) {
+      mapRef.current.animateToRegion(region, 800);
+    }
+  };
   // ----------------
 
   // Centra el mapa en la ubicación del usuario al montar
@@ -189,6 +222,29 @@ export default function RoutesScreen() {
             strokeColor="#1976D2"
           />
         )}
+
+        {autoRouteMarkers.map((marker, idx) => (
+          <Marker
+            key={`auto-point-${idx}`}
+            coordinate={marker}
+          
+          >
+            {idx === 0 ? (
+              <MaterialIcons name="circle" size={32} color="#1976D2" />
+            ) : (
+              <MaterialIcons name="location-on" size={36} color="#43b45e" />
+            )}
+          </Marker>
+        ))}
+
+        {autoRoute.length > 0 && (
+          <Polyline
+            coordinates={autoRoute}
+            strokeWidth={5}
+            strokeColor="#1976D2"
+          />
+        )}
+
       </CustomMap>
 
       {/* Botón de menú 3 puntos arriba del zoom */}
@@ -248,6 +304,7 @@ export default function RoutesScreen() {
         <CreateTripSheet
           driverId={user?.id}
           onClose={() => setShowCreateTrip(false)}
+          onShowRoute={showAssignedRoute}
         />
       )}
       {showRoutesSheet && <RoutesSheet onClose={() => setShowRoutesSheet(false)} />}
@@ -321,6 +378,7 @@ const styles = StyleSheet.create({
     height: 54,
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: 10,
   },
 
   truckBtn: {
@@ -333,6 +391,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginVertical: 2,
     shadowColor: "#000", shadowOpacity: 0.09, shadowRadius: 2, elevation: 2,
+    marginBottom: 10,
   },
   truckText: {
     color: '#131b40',

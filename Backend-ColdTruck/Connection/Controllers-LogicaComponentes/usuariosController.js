@@ -12,12 +12,12 @@ exports.obtenerUsuarios = async (req, res) => {
 
 exports.crearUsuario = async (req, res) => {
   try {
-    // Extrae TODOS los campos requeridos por el schema
+    
     const {
       _id,
       name,
       lastName,
-      secondLastName, // puede venir vacío pero debe existir
+      secondLastName,
       email,
       password,
       phoneNumber,
@@ -28,7 +28,7 @@ exports.crearUsuario = async (req, res) => {
       profilePicture
     } = req.body;
 
-    // Validación básica de campos obligatorios
+    // campos obligatorios
     if (
       _id === undefined ||
       !name ||
@@ -52,7 +52,7 @@ exports.crearUsuario = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const nuevoUsuario = new Usuario({
-      _id, // Debe ser numérico y único
+      _id, 
       name,
       lastName,
       secondLastName: secondLastName || "",
@@ -61,7 +61,7 @@ exports.crearUsuario = async (req, res) => {
       phoneNumber,
       status,
       role,
-      registrationDate: new Date(registrationDate), // Importante: convertir a Date
+      registrationDate: new Date(registrationDate), // a Date
       license: license || "",
       profilePicture
     });

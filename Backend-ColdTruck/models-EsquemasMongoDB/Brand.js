@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const brandSchema = new mongoose.Schema({
-  number: { type: Number, required: true }, // ID de la marca
+  number: { type: Number, required: true },
   name: String,
 });
 

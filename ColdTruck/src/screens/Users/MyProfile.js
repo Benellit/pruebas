@@ -134,7 +134,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#E3E7ED',
   },
   userName: {
-    fontSize: 26,
+    fontSize: 28,
     fontWeight: 'bold',
     color: '#232E3A',
   },
@@ -149,7 +149,7 @@ const styles = StyleSheet.create({
   roleText: {
     color: '#1976D2',
     fontWeight: 'bold',
-    fontSize: 14,
+    fontSize: 16,
   },
   infoBox: {
     backgroundColor: '#FFF',

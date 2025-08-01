@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const modelSchema = new mongoose.Schema({
-  number: { type: Number, required: true }, // ID del modelo
+  number: { type: Number, required: true }, 
   name: String,
   IDBrand: Number,
 });

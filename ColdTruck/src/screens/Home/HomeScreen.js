@@ -64,7 +64,7 @@ export default function HomeScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
+      {/* Header (el boton no tiene funcion y no tendra)*/}
       <View style={styles.header}>
         <TouchableOpacity style={styles.iconBox} onPress={() => navigation.navigate('Home')}>
           <MaterialIcons name="dashboard" size={26} color="#174eaf" />
@@ -108,7 +108,7 @@ export default function HomeScreen({ navigation }) {
                   {statusLabels[item.status] || item.status}
                 </Text>
               </View>
-              <Text style={styles.cardDest}>Ruta: {item.rute?.name}</Text>
+              <Text style={styles.cardDest}>{item.rute?.name}</Text>
               <Text style={styles.cardDriver}>Asignado por: {item.admin?.name}</Text>
               <Text style={styles.cardTemp}>Tipo de carga: {item.cargoType?.name}</Text>
             </View>

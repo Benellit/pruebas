@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const usuarioSchema = new mongoose.Schema({
-  _id: { type: Number, required: true }, // <--- Esto es clave
+  _id: { type: Number, required: true }, 
   name: String,
   lastName: String,
   secondLastName: String,

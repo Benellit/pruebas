@@ -10,12 +10,12 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-// Conexión a MongoDB Atlas
+// Conexión a MongoDB Atlas ...
 mongoose.connect(process.env.MONGO_URI)
     .then(() => console.log('Conectado a MongoDB Atlas'))
     .catch(err => console.error('Error al conectar a MongoDB Atlas:', err));
 
-// 👉 PRIMERO define el esquema
+// define el esquema
 const usuarioSchema = new mongoose.Schema({
     name: String,
     lastName: String,
@@ -27,7 +27,7 @@ const usuarioSchema = new mongoose.Schema({
     role: String
 });
 
-// 👉 LUEGO crea el modelo
+// modelo
 const Usuario = mongoose.model('Usuario', usuarioSchema, 'user');
 
 // Obtener todos los usuarios
@@ -41,7 +41,7 @@ app.get('/user', async (req, res) => {
 });
 
 // Crear un nuevo usuario
-const bcrypt = require('bcrypt'); // encriptación
+const bcrypt = require('bcrypt'); // encriptación de 
 const saltRounds = 10;
 
 // Crear un nuevo usuario
@@ -73,8 +73,8 @@ app.post('/user', async (req, res) => {
 
         res.status(201).json(usuarioSinPassword);
     } catch (err) {
-        console.error('❌ Error al guardar en MongoDB:', err);
-        res.status(400).json({ error: '❌ Error al crear el usuario' });
+        console.error(' Error al guardar en MongoDB:', err);
+        res.status(400).json({ error: ' Error al crear el usuario' });
     }
 });
 
@@ -110,7 +110,7 @@ app.post('/login', async (req, res) => {
             }
         });
     } catch (error) {
-        console.error('❌ Error en login:', error);
+        console.error(' Error en login:', error);
         res.status(500).json({ error: 'Error del servidor' });
     }
 });

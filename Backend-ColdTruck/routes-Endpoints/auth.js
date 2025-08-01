@@ -7,7 +7,6 @@ router.post('/login', async (req, res) => {
   const { email, password } = req.body;
   console.log('Login recibido:', req.body);
 
-  // Busca insensible a mayúsculas/minúsculas y muestra debug
   const todos = await Usuario.find({ email: { $regex: email, $options: 'i' } });
   console.log('Usuarios similares encontrados:', todos);
 

@@ -21,14 +21,8 @@ const SHEET_MAX = SHEET_HEIGHT + UP_MARGIN;
 
 // Dummy data (cambia tus rutas)
 const dummyTrucks = [
-  { id: 1, identifier: "TX-8234", destino: "Centro de Distribución, Tijuana", temperatura: "4.6°C", conductor: "Juan Pérez", status: "en_ruta" },
-  { id: 2, identifier: "JKL-556", destino: "Plaza Otay, Mexicali", temperatura: "--", conductor: "Ana Gómez", status: "pausa" },
-  { id: 3, identifier: "LOG-782", destino: "Cedis Rosarito", temperatura: "7.1°C", conductor: "Carlos Ruiz", status: "finalizado" },
-  { id: 4, identifier: "AX-942", destino: "Cedis Mexicali", temperatura: "6.2°C", conductor: "Luis Mena", status: "en_ruta" },
-  { id: 5, identifier: "JP-654", destino: "San Luis", temperatura: "8.3°C", conductor: "Pedro Lira", status: "en_ruta" },
-  { id: 6, identifier: "RV-111", destino: "Calexico", temperatura: "--", conductor: "Daniela Soto", status: "finalizado" },
-  { id: 7, identifier: "ZT-900", destino: "Tecate", temperatura: "5.7°C", conductor: "Nora Páez", status: "pausa" },
-  { id: 8, identifier: "OP-354", destino: "Almacén central", temperatura: "7.5°C", conductor: "Armando Vera", status: "en_ruta" },
+  { id: 1, identifier: "TX-8234", destino: "Centro de Distribución, Tijuana", temperatura: "4.6°C", conductor: "Mora Mario", status: "en_ruta" },
+  
 ];
 
 // PNGs para estado (¡ajusta rutas a tus assets reales!)

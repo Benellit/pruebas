@@ -33,7 +33,7 @@ function formatKm(dist) {
   return `${(dist / 1000).toFixed(1)} km`;
 }
 
-export default function CreateTripSheet({ onClose, driverId }) {
+export default function CreateTripSheet({ onClose, driverId, onShowRoute }) {
   const [dragging, setDragging] = useState(false);
   const translateY = useRef(new Animated.Value(SHEET_MAX)).current;
 
@@ -108,7 +108,7 @@ export default function CreateTripSheet({ onClose, driverId }) {
 
   fetchTripByDriver(driverId)
     .then(tripArr => {
-      //  usa el primer viaje si es array, o el objeto si no
+      //  usa el primer viaje si es array, o el objeto si no - terminado por ahora
       const tripData = Array.isArray(tripArr) ? tripArr[0] : tripArr;
       console.log('tripData:', tripData);
 
@@ -141,7 +141,7 @@ export default function CreateTripSheet({ onClose, driverId }) {
         setCargoType(cargoData);
         setAdmin(adminData);
 
-        // --- reverse geocode  ---
+        // --- reverse geocode  --- para que lo copies
         if (ruteData?.origin?.coordinates) {
           const addr = await reverseGeocodeOSM(ruteData.origin.coordinates);
           if (isMounted) setOriginAddr(addr);
@@ -275,13 +275,27 @@ export default function CreateTripSheet({ onClose, driverId }) {
               </View>
             </View>
           </View>
-          <TouchableOpacity
-            style={styles.routeBtn}
-            onPress={() => alert('Iniciar viaje')}
-          >
-            <MaterialIcons name="flag" size={24} color="#fff" style={{ marginRight: 8 }} />
-            <Text style={styles.routeBtnText}>Iniciar viaje</Text>
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', gap: 10, marginTop: 22, justifyContent: 'flex-end' }}>
+              <TouchableOpacity
+                style={styles.viewMapBtn}
+                onPress={() => {
+                  if (onShowRoute && rute?.origin?.coordinates && rute?.destination?.coordinates) {
+                    onShowRoute(rute.origin.coordinates, rute.destination.coordinates);
+                  }
+                }}
+              >
+                <MaterialIcons name="map" size={22} color="#1976D2" style={{ marginRight: 8 }} />
+                <Text style={styles.viewMapText}>View Trip</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.routeBtn}
+                onPress={() => alert('Iniciar viaje')}
+              >
+                <MaterialIcons name="flag" size={24} color="#fff" style={{ marginRight: 8 }} />
+                <Text style={styles.routeBtnText}>Start Trip</Text>
+              </TouchableOpacity>
+            </View>
+
         </View>
         <View style={styles.infoTripSection}>
           <View style={styles.infoTripBlock}>
@@ -422,9 +436,31 @@ const styles = StyleSheet.create({
     fontSize: 17,
     letterSpacing: 0.1,
   },
+  viewMapBtn: {
+    borderColor: '#1976D2',
+    borderWidth: 2,
+    borderRadius: 15,
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-end',
+    paddingVertical: 7,
+    paddingHorizontal: 20,
+    marginTop: 12,
+    shadowColor: '#1976D2',
+    shadowOpacity: 0.08,
+    shadowRadius: 5,
+    elevation: 1,
+    backgroundColor: "#fff", 
+  },
+  viewMapText: {
+    color: '#1976D2',
+    fontWeight: '600',
+    fontSize: 16,
+    letterSpacing: 0.1,
+  },
   infoTripSection: {
   flexDirection: 'row',
-  flexWrap: 'wrap',          // Permite el salto de línea
+  flexWrap: 'wrap',          
   justifyContent: 'space-between',
   backgroundColor: '#f2f6fd',
   marginHorizontal: 7,
@@ -432,16 +468,16 @@ const styles = StyleSheet.create({
   padding: 10,
   marginBottom: 15,
   marginTop: 10,
-  gap: 0,                    // Puedes jugar con este valor
+  gap: 0,                   
 },
 infoTripBlock: {
-  width: '48%',              // 2 por fila (con gap o margin entre ellos)
+  width: '48%',             
   alignItems: 'center',
   paddingVertical: 12,
   borderRadius: 11,
   backgroundColor: '#fff',
   marginBottom: 12,
-  // marginHorizontal: 4,     // Quita o ajusta según se vea
+  // marginHorizontal: 4,     
   shadowColor: "#1976D2",
   shadowOpacity: 0.04,
   shadowRadius: 5,

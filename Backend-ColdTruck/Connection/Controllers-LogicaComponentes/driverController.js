@@ -7,7 +7,7 @@ exports.getDriverTruck = async (req, res) => {
   try {
     const userId = Number(req.params.userId);
 
-    // 1. Busca asignación activa del camión para el driver
+    // asignación activa del camión para el driver
     const userTruck = await UserTruck.findOne({
       IDDriver: userId,
       dateEnd: { $in: [null, undefined] }
@@ -15,16 +15,16 @@ exports.getDriverTruck = async (req, res) => {
     if (!userTruck)
       return res.status(404).json({ msg: 'No truck assigned to this driver' });
 
-    // 2. Busca el camión
+    // Busca el camión
     const truck = await Truck.findOne({ number: userTruck.IDTruck });
     if (!truck)
       return res.status(404).json({ msg: 'Truck not found' });
 
-    // 3. Marca y modelo
+    // Marca y modelo
     const brand = await Brand.findOne({ number: truck.IDBrand });
     const model = await Model.findOne({ number: truck.IDModel });
 
-    // 4. Retorna detalles relevantes
+    // Retorna detalles relevantes
     res.json({
       truckNumber: truck.number,
       plates: truck.plates,
