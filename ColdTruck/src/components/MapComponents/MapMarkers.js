@@ -1,14 +1,33 @@
 // src/components/MapComponents/MapMarkers.js
 import React from 'react';
 import { Marker } from 'react-native-maps';
+import PinOrigen from '../../../assets/pinOrigen.png';
+import PinDestino from '../../../assets/pinDestino.png';
 
-export const MapMarkers = ({ markers }) => (
-  markers.map((marker, idx) => (
-    <Marker
-      key={idx}
-      coordinate={marker}
-      title={`Punto ${idx + 1}`}
-      pinColor={idx === 0 ? '#4CAF50' : '#F44336'}
-    />
-  ))
-);
+export const MapMarkers = ({ markers }) => {
+  if (!markers || markers.length === 0) return null;
+
+  const start = markers[0];
+  const end = markers[markers.length - 1];
+
+  return (
+    <>
+      <Marker
+        key="start"
+        coordinate={start}
+        title="Origen"
+        pinColor="#4CAF50"
+        image={PinOrigen}
+      />
+      {markers.length > 1 && (
+        <Marker
+          key="end"
+          coordinate={end}
+          title="Destino"
+          pinColor="#F44336"
+          image={PinDestino}
+        />
+      )}
+    </>
+  );
+};
