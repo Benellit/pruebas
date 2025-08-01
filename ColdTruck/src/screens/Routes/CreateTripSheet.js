@@ -33,7 +33,7 @@ function formatKm(dist) {
   return `${(dist / 1000).toFixed(1)} km`;
 }
 
-export default function CreateTripSheet({ onClose, driverId, onShowRoute }) {
+export default function CreateTripSheet({ onClose, driverId, onShowRoute, onStartNavigation }) {
   const [dragging, setDragging] = useState(false);
   const translateY = useRef(new Animated.Value(SHEET_MAX)).current;
 
@@ -292,7 +292,10 @@ export default function CreateTripSheet({ onClose, driverId, onShowRoute }) {
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.routeBtn}
-                onPress={() => alert('Iniciar viaje')}
+                onPress={() => {
+                  if (onStartNavigation) onStartNavigation();
+                  if (onClose) onClose();
+                }}
               >
                 <MaterialIcons name="flag" size={24} color="#fff" style={{ marginRight: 8 }} />
                 <Text style={styles.routeBtnText}>Start Trip</Text>

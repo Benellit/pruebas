@@ -16,6 +16,7 @@ import { AuthContext } from '../../context/AuthContext';
 import { MapMarkers } from '../../components/MapComponents/MapMarkers'; 
 import PinOrigen from '../../../assets/pinOrigen.png';
 import PinDestino from '../../../assets/pinDestino.png';
+import ArrowImg from '../../../assets/arrow.png';
 
 
 
@@ -75,6 +76,10 @@ export default function RoutesScreen() {
   const [zoom, setZoom] = useState(0.05);
   const [showRoutesSheet, setShowRoutesSheet] = useState(false);
 
+  const [isNavigating, setIsNavigating] = useState(false);
+  const [currentPosition, setCurrentPosition] = useState(null);
+  const [heading, setHeading] = useState(0);
+  const [locationWatcher, setLocationWatcher] = useState(null);
 
   // ----- Ruta -----
   const [isRouteMode, setIsRouteMode] = useState(false);
@@ -151,12 +156,67 @@ const showAssignedRoute = async (originCoords, destinationCoords) => {
   setIsRouteMode(false);
 };
 
+const startNavigation = async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permiso de ubicación denegado');
+        return;
+      }
+
+      const watcher = await Location.watchPositionAsync(
+        {
+          accuracy: Location.Accuracy.Highest,
+          timeInterval: 1000,
+          distanceInterval: 1,
+        },
+        ({ coords }) => {
+          const { latitude, longitude, heading: hdg } = coords;
+          const pos = { latitude, longitude };
+          setCurrentPosition(pos);
+          setHeading(hdg || 0);
+
+          if (mapRef.current) {
+            mapRef.current.animateToRegion(
+              {
+                latitude,
+                longitude,
+                latitudeDelta: 0.002,
+                longitudeDelta: 0.002,
+              },
+              500
+            );
+          }
+
+          // TODO: enviar POST a /tracking/guardar con la posición y ID del viaje
+        }
+      );
+
+      setLocationWatcher(watcher);
+      setIsNavigating(true);
+    } catch (err) {
+      Alert.alert('Error', err.message);
+    }
+  };
+
+  const stopNavigation = () => {
+    if (locationWatcher) {
+      locationWatcher.remove();
+      setLocationWatcher(null);
+    }
+    setCurrentPosition(null);
+    setHeading(0);
+    setIsNavigating(false);
+  };
 
   // ----------------
 
   // Centra el mapa en la ubicación del usuario al montar
   useEffect(() => {
     centerOnUser();
+     return () => {
+      if (locationWatcher) locationWatcher.remove();
+    };
   }, []);
 
   // Centrar en la ubicación del usuario
@@ -229,6 +289,15 @@ const showAssignedRoute = async (originCoords, destinationCoords) => {
   {autoRoute.length > 0 && (
     <Polyline coordinates={autoRoute} strokeWidth={5} strokeColor="#1976D2" />
   )}
+  {isNavigating && currentPosition && (
+    <Marker
+      coordinate={currentPosition}
+      flat
+      anchor={{ x: 0.5, y: 0.5 }}
+      rotation={heading}
+      image={ArrowImg}
+    />
+  )}
 </CustomMap>
 
 
@@ -264,6 +333,16 @@ const showAssignedRoute = async (originCoords, destinationCoords) => {
           <Octicons name="package-dependents" size={18} color={t.text} style={{ marginRight: 8 }} />
           <Text style={[styles.truckText, { color: t.text }]}>Overview</Text>
         </TouchableOpacity>
+
+        {isNavigating && (
+          <TouchableOpacity
+            style={[styles.stopNavBtn, { backgroundColor: t.card }]}
+            onPress={stopNavigation}
+          >
+            <MaterialIcons name="close" size={24} color="red" />
+          </TouchableOpacity>
+        )}
+
       </View>
 
       {/* Esquina inferior izquierda */}
@@ -292,6 +371,7 @@ const showAssignedRoute = async (originCoords, destinationCoords) => {
           driverId={user?.id}
           onClose={() => setShowCreateTrip(false)}
           onShowRoute={showAssignedRoute}
+          onStartNavigation={startNavigation}
         />
       )}
       {showRoutesSheet && <RoutesSheet onClose={() => setShowRoutesSheet(false)} />}
@@ -368,6 +448,17 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
 
+  stopNavBtn: {
+    backgroundColor: '#fff',
+    borderRadius: 14,
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginVertical: 2,
+    shadowColor: "#000", shadowOpacity: 0.09, shadowRadius: 2, elevation: 2,
+  },
+  
   truckBtn: {
     backgroundColor: '#fff',
     borderRadius: 14,
