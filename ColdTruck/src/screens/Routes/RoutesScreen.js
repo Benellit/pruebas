@@ -8,12 +8,14 @@ import Octicons from '@expo/vector-icons/Octicons';
 import { useNavigation } from '@react-navigation/native';
 import * as Location from 'expo-location';
 import { Marker, Polyline } from 'react-native-maps';
-import { fetchRoute } from '../../services/routeService'; // Debe estar implementado
+import { fetchRoute } from '../../services/routeService'; 
 import FloatingSearchBar from './FloatingSearchBar';
 import CreateTripSheet from './CreateTripSheet';
 import RoutesSheet from './RoutesSheet';
 import { AuthContext } from '../../context/AuthContext';
-
+import { MapMarkers } from '../../components/MapComponents/MapMarkers'; 
+import PinOrigen from '../../../assets/pinOrigen.png';
+import PinDestino from '../../../assets/pinDestino.png';
 
 
 
@@ -197,55 +199,40 @@ export default function RoutesScreen() {
   return (
     <View style={[styles.container, { backgroundColor: t.background }]}>
       {/* Mapa */}
-      <CustomMap
-        ref={mapRef}
-        region={mapRegion}
-        showsUserLocation={true}
-        style={RNStyleSheet.absoluteFillObject}
-        onPress={handleMapPress}
-        showsCompass={false}
-        showsMyLocationButton={false}
-        theme={theme}
-      >
-        {/* Mostrar marcadores y polilínea SOLO cuando estén los puntos */}
-        {routeMarkers.map((marker, idx) => (
-          <Marker
-            key={`route-point-${idx}`}
-            coordinate={marker}
-            pinColor={idx === 0 ? 'green' : 'red'}
-          />
-        ))}
-        {route.length > 0 && (
-          <Polyline
-            coordinates={route}
-            strokeWidth={5}
-            strokeColor="#1976D2"
-          />
-        )}
+                <CustomMap
+  ref={mapRef}
+  region={mapRegion}
+  showsUserLocation={true}
+  style={RNStyleSheet.absoluteFillObject}
+  onPress={handleMapPress}
+  showsCompass={false}
+  showsMyLocationButton={false}
+  theme={theme}
+>
+  {/* Pines para rutas seleccionadas manualmente */}
+  <MapMarkers markers={routeMarkers} />
 
-        {autoRouteMarkers.map((marker, idx) => (
-          <Marker
-            key={`auto-point-${idx}`}
-            coordinate={marker}
-          
-          >
-            {idx === 0 ? (
-              <MaterialIcons name="circle" size={32} color="#1976D2" />
-            ) : (
-              <MaterialIcons name="location-on" size={36} color="#43b45e" />
-            )}
-          </Marker>
-        ))}
+  {route.length > 0 && (
+    <Polyline
+      coordinates={route}
+      strokeWidth={5}
+      strokeColor="#1976D2"
+    />
+  )}
 
-        {autoRoute.length > 0 && (
-          <Polyline
-            coordinates={autoRoute}
-            strokeWidth={5}
-            strokeColor="#1976D2"
-          />
-        )}
+  {/* Pines del viaje asignado */}
+  <MapMarkers markers={autoRouteMarkers} />
 
-      </CustomMap>
+  {autoRoute.length > 0 && (
+    <Polyline
+      coordinates={autoRoute}
+      strokeWidth={5}
+      strokeColor="#1976D2"
+    />
+  )}
+</CustomMap>
+
+
 
       {/* Botón de menú 3 puntos arriba del zoom */}
       <TouchableOpacity style={[styles.menuButton, { backgroundColor: t.card }]} onPress={toggleTheme}>

@@ -6,7 +6,6 @@ import PinDestino from '../../../assets/pinDestino.png';
 
 export const MapMarkers = ({ markers }) => {
   if (!markers || markers.length === 0) return null;
-
   const start = markers[0];
   const end = markers[markers.length - 1];
 
@@ -16,7 +15,6 @@ export const MapMarkers = ({ markers }) => {
         key="start"
         coordinate={start}
         title="Origen"
-        pinColor="#4CAF50"
         image={PinOrigen}
       />
       {markers.length > 1 && (
@@ -24,7 +22,6 @@ export const MapMarkers = ({ markers }) => {
           key="end"
           coordinate={end}
           title="Destino"
-          pinColor="#F44336"
           image={PinDestino}
         />
       )}
