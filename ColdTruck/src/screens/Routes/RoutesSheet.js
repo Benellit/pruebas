@@ -1,48 +1,41 @@
-import React, { useRef, useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Animated,
-  Dimensions,
-  FlatList,
-  Image,
-  PanResponder,
-  TouchableWithoutFeedback,
-} from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Animated, Dimensions, PanResponder } from 'react-native';
+import Icon from 'react-native-vector-icons/Ionicons';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
 const { width, height } = Dimensions.get('window');
-const SHEET_HEIGHT = Math.round(height * 0.59);
-const UP_MARGIN = 75;
+const SHEET_HEIGHT = Math.round(height * 0.46);
+const UP_MARGIN = 95;
 const SHEET_MIN = UP_MARGIN;
 const SHEET_MAX = SHEET_HEIGHT + UP_MARGIN;
 
-// Dummy data (cambia tus rutas)
-const dummyTrucks = [
-  { id: 1, identifier: "TX-8234", destino: "Centro de Distribución, Tijuana", temperatura: "4.6°C", conductor: "Mora Mario", status: "en_ruta" },
-  
-];
 
-// PNGs para estado (¡ajusta rutas a tus assets reales!)
-const estadoImages = {
-  en_ruta: require('../../../assets/truck_default.png'),
-  pausa: require('../../../assets/truck_default.png'),
-  finalizado: require('../../../assets/truck_default.png')
+const FAKE_METRICS = {
+  temp: 23.6,
+  hum: 47,
+  maxTemp: 28,
+  minTemp: 14,
+  maxHum: 60,
+  minHum: 41,
+  lastDate: '2024-08-02T17:24:00Z',
+  alerts: [
+    { type: 'temp', value: 86, hum: 47, date: '2024-08-02T15:10:00Z' },
+    { type: 'hum', value: 20, hum: 20, date: '2024-08-02T13:30:00Z' }
+  ]
 };
 
-function chunkArray(arr, size) {
-  const res = [];
-  for (let i = 0; i < arr.length; i += size) {
-    res.push(arr.slice(i, i + size));
-  }
-  return res;
+function formatDate(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  return `${d.toLocaleDateString()} ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
 }
 
 export default function RoutesSheet({ onClose }) {
-  const translateY = useRef(new Animated.Value(SHEET_MAX)).current;
-  React.useEffect(() => {
+  const [metrics, setMetrics] = useState(FAKE_METRICS);
+
+  // Slide up/down animation
+  const translateY = React.useRef(new Animated.Value(SHEET_MAX)).current;
+  useEffect(() => {
     Animated.timing(translateY, {
       toValue: SHEET_MIN,
       duration: 180,
@@ -50,8 +43,8 @@ export default function RoutesSheet({ onClose }) {
     }).start();
   }, []);
 
-  // PanResponder para header y dragBar
-  const panResponder = useRef(
+  // PanResponder para arrastrar sheet
+  const panResponder = React.useRef(
     PanResponder.create({
       onMoveShouldSetPanResponder: (evt, gesture) => Math.abs(gesture.dy) > 6,
       onPanResponderGrant: () => {
@@ -89,24 +82,10 @@ export default function RoutesSheet({ onClose }) {
     });
   };
 
-  // Divide en “slides” de 4
-  const pageSize = 4;
-  const slides = chunkArray(dummyTrucks, pageSize);
-  const [page, setPage] = useState(0);
-  const flatListRef = useRef();
-
-  const onScroll = e => {
-    const idx = Math.round(e.nativeEvent.contentOffset.x / (width - 46));
-    setPage(idx);
-  };
-
   return (
     <>
       {/* Backdrop */}
-      <TouchableWithoutFeedback onPress={closeSheet}>
-        <Animated.View style={styles.backdrop} />
-      </TouchableWithoutFeedback>
-
+      <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={closeSheet} />
       {/* Sheet */}
       <Animated.View
         style={[
@@ -124,66 +103,64 @@ export default function RoutesSheet({ onClose }) {
         pointerEvents="box-none"
       >
         {/* DragBar visual */}
-        <View style={styles.dragBar} />
-        {/* Header con panHandlers */}
-        <View style={styles.headerRow} {...panResponder.panHandlers}>
-          <Text style={styles.title}>Camiones en Ruta</Text>
-          <TouchableOpacity style={styles.filterBtn} onPress={() => alert("Próximamente: filtros")}>
-            <MaterialIcons name="filter-list" size={21} color="#1976D2" />
-            <Text style={styles.filterText}>Filtros</Text>
-          </TouchableOpacity>
-        </View>
-        {/* Cards: carrusel horizontal, cada página con 4 */}
-        <FlatList
-          ref={flatListRef}
-          horizontal
-          pagingEnabled
-          data={slides}
-          keyExtractor={(_, i) => "slide" + i}
-          showsHorizontalScrollIndicator={false}
-          snapToInterval={width - 46}
-          decelerationRate="fast"
-          onScroll={onScroll}
-          style={{ flexGrow: 0 }}
-          contentContainerStyle={{ paddingHorizontal: 18 }}
-          renderItem={({ item: group }) => (
-            <View style={styles.cardsGrid}>
-              {group.map((item) => (
-                <TouchableOpacity
-                  key={item.id}
-                  activeOpacity={0.89}
-                  style={styles.card}
-                  onPress={() => alert("Detalles en desarrollo")}
-                >
-                  <Image source={estadoImages[item.status]} style={styles.estadoImg} />
-                  <Text style={styles.identifier}>{item.identifier}</Text>
-                  <Text style={styles.destino} numberOfLines={2}>{item.destino}</Text>
-                  <Text style={styles.conductor}>{item.conductor}</Text>
-                  <View style={styles.cardFooter}>
-                    <MaterialIcons name="thermostat" size={16} color="#1976D2" />
-                    <Text style={styles.temperatura}>{item.temperatura}</Text>
-                  </View>
-                </TouchableOpacity>
-              ))}
-              {/* Si hay menos de 4, rellena con “espacios vacíos” */}
-              {group.length < 4 && Array.from({ length: 4 - group.length }).map((_, i) => (
-                <View style={styles.card} key={"empty"+i} />
-              ))}
+        <View style={styles.dragBar} {...panResponder.panHandlers} />
+
+        {/* MÉTRICAS */}
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingHorizontal: 18 }}>
+          {/* GRID DE MÉTRICAS */}
+          <View style={styles.metricsGrid}>
+            {/* FILA SUPERIOR */}
+            <View style={styles.metricsRow}>
+              {/* Temperatura */}
+              <View style={styles.metricSquare}>
+                <View style={styles.iconCircle}>
+                  <Icon name="thermometer" size={23} color="#8BA0B3" />
+                </View>
+                <Text style={styles.metricLabelLeft}>Temperature</Text>
+                <Text style={styles.metricValueLeft}>
+                  {metrics.temp !== undefined ? metrics.temp.toFixed(1) : '--'}°C
+                </Text>
+              </View>
+              {/* Humedad */}
+              <View style={styles.metricSquare}>
+                <View style={styles.iconCircle}>
+                  <Icon name="water-outline" size={23} color="#8BA0B3" />
+                </View>
+                <Text style={styles.metricLabelLeft}>Humidity</Text>
+                <Text style={styles.metricValueLeft}>
+                  {metrics.hum !== undefined ? metrics.hum : '--'}%
+                </Text>
+              </View>
             </View>
-          )}
-        />
-        {/* Bolitas paginador */}
-        <View style={styles.pagination}>
-          {slides.map((_, i) => (
-            <View
-              key={i}
-              style={[
-                styles.dot,
-                { opacity: i === page ? 1 : 0.3, width: i === page ? 22 : 10 },
-              ]}
-            />
-          ))}
-        </View>
+            {/* FILA INFERIOR */}
+            <View style={[styles.metricsRow, { marginBottom: 7 }]}>
+              {/* Max/Min Temp */}
+              
+            </View>
+            
+            
+                      </View>
+
+          {/* ÚLTIMA LECTURA */}
+          <View style={styles.lastReadingBox}>
+            <MaterialCommunityIcons name="history" size={22} color="#8BA0B3" style={{ marginRight: 8 }} />
+            <Text style={styles.lastReadingText}>
+              Last reading: {formatDate(metrics.lastDate)}
+            </Text>
+          </View>
+
+          {/* TARJETA DE ALERTAS (solo resumen, minimalista) */}
+          <View style={styles.alertCard}>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <MaterialCommunityIcons name="alert-circle" size={22} color="#f8d24c" />
+              <Text style={styles.alertSummary}>
+                {metrics.alerts && metrics.alerts.length > 0
+                  ? `There ${metrics.alerts.length === 1 ? 'is' : 'are'} ${metrics.alerts.length} alert${metrics.alerts.length > 1 ? 's' : ''} registered`
+                  : 'No alerts registered'}
+              </Text>
+            </View>
+          </View>
+        </ScrollView>
       </Animated.View>
     </>
   );
@@ -214,114 +191,145 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     alignSelf: 'center',
   },
-  headerRow: {
+  // === MÉTRICAS RECICLADAS ===
+  metricsGrid: {
+    width: '100%',
+    marginBottom: 2,
+  },
+  metricsRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 23,
     justifyContent: 'space-between',
-    marginBottom: 7,
-    // Para mejorar el "área tocable" puedes aumentar el paddingVertical
-    paddingTop: 7,
-    paddingBottom: 7,
-    zIndex: 12,
+    gap: 18,
+    marginBottom: 6,
   },
-  title: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#182654',
-    letterSpacing: 0.2,
+  metricSquare: {
+    flex: 1,
+    backgroundColor: '#fff',
+    borderRadius: 18,
+    alignItems: 'flex-start',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 13,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 7,
+    elevation: 2,
+    minWidth: 115,
+    maxWidth: 150,
+    
   },
-  filterBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#eaf4fb',
-    borderRadius: 9,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-  },
-  filterText: {
-    color: '#1976D2',
-    marginLeft: 4,
+  metricLabelLeft: {
+    fontSize: 14,
+    color: '#49505eff',
     fontWeight: '600',
-    fontSize: 15,
+    marginBottom: 1,
+    textAlign: 'left',
   },
-  cardsGrid: {
+  metricValueLeft: {
+    fontSize: 19,
+    fontWeight: 'bold',
+    color: '#37485aff',
+    textAlign: 'left',
+    marginTop: 2,
+  },
+  metricSquareSmall: {
+    flex: 1,
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 2, 
+    shadowColor: '#000',
+    shadowOpacity: 0.07,
+    shadowOffset: { width: 0, height: 1 },
+    shadowRadius: 3,
+    elevation: 1,
+    minWidth: 90,
+    maxWidth: 120,
+    height: 64, // Ahora miden igual
+  },
+  metricLabelTiny: {
+    fontSize: 11, // Más pequeño
+    color: '#728096',
+    fontWeight: '500',
+    textAlign: 'center',
+    flex: 1,
+    flexWrap: 'nowrap',
+  },
+  metricValueTiny: {
+    fontSize: 13.5,
+    fontWeight: 'bold',
+    color: '#5fa8f7ff',
+    textAlign: 'center',
+    flex: 1,
+  },
+  rowLabels: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    width: width - 46, // Debe coincidir con snapToInterval
-    minHeight: 295,
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: 7,
-    paddingBottom: 7,
-    alignSelf: 'center',
+    width: '100%',
+    marginBottom: 3,
+    paddingHorizontal: 2, // Más compacto
+    flexWrap: 'nowrap', // Nunca dos líneas
   },
-  card: {
-    width: (width - 100) / 2,
-    height: 130,
-    backgroundColor: '#f6fbff',
-    borderRadius: 15,
+  rowValues: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '100%',
+    paddingHorizontal: 2, // Más compacto
+  },
+
+  iconCircle: {
+    borderWidth: 1.2,
+    borderColor: '#E3E7ED',
+    borderRadius: 12,
+    padding: 6,
+    marginBottom: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  // === ÚLTIMA LECTURA ===
+  lastReadingBox: {
+    marginTop: 3,
+    marginBottom: 6,
+    backgroundColor: '#fff',
+    borderRadius: 13,
+    padding: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.04,
+    shadowRadius: 3,
+    elevation: 1,
+  },
+  lastReadingText: {
+    fontSize: 14,
+    color: '#556072',
+    fontWeight: '600',
+    flex: 1,
+  },
+  // === TARJETA DE ALERTAS ===
+  alertCard: {
+    width: '100%',
+    backgroundColor: '#fffbe8',
+    borderRadius: 13,
     padding: 13,
-    marginBottom: 11,
-    shadowColor: "#1976D2",
-    shadowOpacity: 0.06,
+    marginTop: 6,
+    marginBottom: 7,
+    shadowColor: '#F8D24C',
+    shadowOpacity: 0.07,
     shadowRadius: 7,
     elevation: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignSelf: 'center',
   },
-  estadoImg: {
-    width: 35,
-    height: 35,
-    marginBottom: 5,
-    resizeMode: 'contain',
-  },
-  identifier: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#25346e',
-    textAlign: 'center',
-    marginBottom: 3,
-    letterSpacing: 0.18,
-  },
-  destino: {
-    fontSize: 13.3,
-    color: '#222d4e',
-    fontWeight: '500',
-    textAlign: 'center',
-    marginBottom: 2,
-    flexShrink: 1,
-  },
-  conductor: {
-    fontSize: 13.2,
-    color: '#4466a1',
-    fontWeight: '500',
-    textAlign: 'center',
-    marginBottom: 2,
-  },
-  cardFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 3,
-  },
-  temperatura: {
-    fontSize: 13,
-    color: '#1976D2',
+  alertSummary: {
+    fontSize: 15,
     fontWeight: '600',
-    marginLeft: 4,
-  },
-  pagination: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 0,
-  },
-  dot: {
-    height: 8,
-    borderRadius: 8,
-    backgroundColor: '#1976D2',
-    marginHorizontal: 3.5,
-    marginBottom: 7,
-  },
+    color: '#bca91f',
+    marginLeft: 10,
+  }
 });
+

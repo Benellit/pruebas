@@ -281,6 +281,9 @@ export default function CreateTripSheet({ onClose, driverId, onShowRoute }) {
                 onPress={() => {
                   if (onShowRoute && rute?.origin?.coordinates && rute?.destination?.coordinates) {
                     onShowRoute(rute.origin.coordinates, rute.destination.coordinates);
+                    // close sheet so the pins are visible on the map
+                   if (onClose) onClose();
+
                   }
                 }}
               >

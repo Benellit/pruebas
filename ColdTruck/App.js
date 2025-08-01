@@ -50,7 +50,6 @@ const AppTabs = () => {
       <Tab.Screen name="Home" component={HomeScreen} initialParams={{ role }} />
       <Tab.Screen name="Routes" component={RoutesScreen} initialParams={{ role }} />
       <Tab.Screen name="Trucks" component={TrucksScreen} initialParams={{ role }} />
-      <Tab.Screen name="Notifications" component={NotificationsScreen} initialParams={{ role }} />
       <Tab.Screen name="Users" component={UsersScreen} initialParams={{ role }} />
     </Tab.Navigator>
   );

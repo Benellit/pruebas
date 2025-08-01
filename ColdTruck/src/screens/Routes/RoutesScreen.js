@@ -114,35 +114,44 @@ export default function RoutesScreen() {
     Alert.alert("API Ruta optimizada", "Toca dos puntos en el mapa para trazar la ruta.");
   };
 
-   const showAssignedRoute = async (originCoords, destinationCoords) => {
-    if (!originCoords || !destinationCoords) return;
-    const start = { latitude: originCoords[1], longitude: originCoords[0] };
-    const end = { latitude: destinationCoords[1], longitude: destinationCoords[0] };
-    setIsRouteMode(false);
-    setRouteMarkers([]);
-    setRoute([]);
-    setAutoRouteMarkers([start, end]);
-    try {
-      const pts = await fetchRoute(start, end);
-      setAutoRoute(pts);
-    } catch (err) {
-      Alert.alert('Error', err.message);
-    }
-    const midLat = (start.latitude + end.latitude) / 2;
-    const midLng = (start.longitude + end.longitude) / 2;
-    const latDelta = Math.max(Math.abs(start.latitude - end.latitude) * 1.8, 0.05);
-    const lngDelta = Math.max(Math.abs(start.longitude - end.longitude) * 1.8, 0.05);
-    const region = {
-      latitude: midLat,
-      longitude: midLng,
-      latitudeDelta: latDelta,
-      longitudeDelta: lngDelta,
-    };
-    setMapRegion(region);
-    if (mapRef.current && mapRef.current.animateToRegion) {
-      mapRef.current.animateToRegion(region, 800);
-    }
+const showAssignedRoute = async (originCoords, destinationCoords) => {
+  if (!originCoords || !destinationCoords) return;
+
+  const start = { latitude: originCoords[1], longitude: originCoords[0] };
+  const end = { latitude: destinationCoords[1], longitude: destinationCoords[0] };
+
+  // Aquí está el cambio clave, usa los mismos estados que el botón history
+  setRouteMarkers([start, end]);
+
+  try {
+    const pts = await fetchRoute(start, end);
+    setRoute(pts);
+  } catch (err) {
+    Alert.alert('Error', err.message);
+  }
+
+  const midLat = (start.latitude + end.latitude) / 2;
+  const midLng = (start.longitude + end.longitude) / 2;
+  const latDelta = Math.max(Math.abs(start.latitude - end.latitude) * 1.8, 0.05);
+  const lngDelta = Math.max(Math.abs(start.longitude - end.longitude) * 1.8, 0.05);
+
+  const region = {
+    latitude: midLat,
+    longitude: midLng,
+    latitudeDelta: latDelta,
+    longitudeDelta: lngDelta,
   };
+  setMapRegion(region);
+
+  if (mapRef.current && mapRef.current.animateToRegion) {
+    mapRef.current.animateToRegion(region, 800);
+  }
+
+  // Desactiva modo ruta manual para evitar conflicto
+  setIsRouteMode(false);
+};
+
+
   // ----------------
 
   // Centra el mapa en la ubicación del usuario al montar
@@ -209,28 +218,19 @@ export default function RoutesScreen() {
   showsMyLocationButton={false}
   theme={theme}
 >
-  {/* Pines para rutas seleccionadas manualmente */}
+  {/* Marcadores manuales */}
   <MapMarkers markers={routeMarkers} />
-
   {route.length > 0 && (
-    <Polyline
-      coordinates={route}
-      strokeWidth={5}
-      strokeColor="#1976D2"
-    />
+    <Polyline coordinates={route} strokeWidth={5} strokeColor="#1976D2" />
   )}
 
-  {/* Pines del viaje asignado */}
+  {/* Marcadores automáticos (viaje asignado) */}
   <MapMarkers markers={autoRouteMarkers} />
-
   {autoRoute.length > 0 && (
-    <Polyline
-      coordinates={autoRoute}
-      strokeWidth={5}
-      strokeColor="#1976D2"
-    />
+    <Polyline coordinates={autoRoute} strokeWidth={5} strokeColor="#1976D2" />
   )}
 </CustomMap>
+
 
 
 
@@ -262,7 +262,7 @@ export default function RoutesScreen() {
             setShowCreateTrip(false);
           }}>
           <Octicons name="package-dependents" size={18} color={t.text} style={{ marginRight: 8 }} />
-          <Text style={[styles.truckText, { color: t.text }]}>Routes</Text>
+          <Text style={[styles.truckText, { color: t.text }]}>Overview</Text>
         </TouchableOpacity>
       </View>
 
@@ -371,7 +371,7 @@ const styles = StyleSheet.create({
   truckBtn: {
     backgroundColor: '#fff',
     borderRadius: 14,
-    width: 90,
+    width: 110,
     height: 48,
     flexDirection: 'row',
     alignItems: 'center',
