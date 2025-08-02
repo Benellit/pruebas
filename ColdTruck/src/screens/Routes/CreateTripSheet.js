@@ -9,8 +9,9 @@ import { FontAwesome } from '@expo/vector-icons';
 import { fetchTripsForDriver } from '../../services/tripService';
 import { fetchCargoType } from '../../services/cargoTypeService';
 import { fetchUser } from '../../services/userService';
-import { getValidTrips } from '../../utils/tripUtils'; 
-import { formatShortDate } from '../../utils/dateUtils'; 
+import { getValidTrips } from '../../utils/tripUtils';
+import { formatShortDate } from '../../utils/dateUtils';
+import { fetchRute } from '../../services/ruteService';
 
 import { reverseGeocodeOSM } from '../../services/geocodeService';
 
@@ -184,7 +185,7 @@ export default function CreateTripSheet({ onClose, driverId, onShowRoute, onStar
       >
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 48 }}>
           <ActivityIndicator size="large" color="#1976D2" />
-          <Text style={{ marginTop: 15, color: "#1976D2", fontWeight: '500' }}>Cargando viaje...</Text>
+          <Text style={{ marginTop: 15, color: "#1976D2", fontWeight: '500' }}>Loading trip...</Text>
         </View>
       </Animated.View>
     );
@@ -192,8 +193,8 @@ export default function CreateTripSheet({ onClose, driverId, onShowRoute, onStar
 
   
   return (
-    <View style={StyleSheet.absoluteFill} pointerEvents="box-none"> {/* BOTTOMSHEET_TOUCH */}
-      <TouchableOpacity style={styles.backdrop} onPress={closeSheet} activeOpacity={1} /> {/* BOTTOMSHEET_TOUCH */}
+    <View style={StyleSheet.absoluteFill} pointerEvents="box-none"> 
+      <TouchableOpacity style={styles.backdrop} onPress={closeSheet} activeOpacity={1} /> 
       <Animated.View
         style={[
           styles.sheet,
@@ -228,15 +229,15 @@ export default function CreateTripSheet({ onClose, driverId, onShowRoute, onStar
           {trip ? (
             <>
               <View style={styles.cardSection}>
-                <Text style={styles.titleAssigned}>Datos del viaje asignado</Text>
+                <Text style={styles.titleAssigned}>Details of the assigned trip</Text>
                 <View style={styles.odWrapper}>
-                  {/* ORIGEN */}
+                 
                   <View style={styles.odRow}>
                     <View style={styles.iconBox}>
                       <FontAwesome name="dot-circle-o" size={22} color="#1976D2" />
                     </View>
                     <View style={styles.odTextBox}>
-                      <Text style={styles.odHour}>{formatShortDate(trip.scheduledDepartureDate)}</Text> {/* FORMAT_FECHA */}
+                      <Text style={styles.odHour}>{formatShortDate(trip.scheduledDepartureDate)}</Text> 
                       <Text style={styles.odStreet} numberOfLines={1}>{originAddr.street}</Text>
                       <Text style={styles.odLocality}>{originAddr.locality}, {originAddr.city}</Text>
                     </View>
@@ -244,13 +245,13 @@ export default function CreateTripSheet({ onClose, driverId, onShowRoute, onStar
                   <View style={styles.odLineContainer}>
                     <View style={styles.odLine} />
                   </View>
-                  {/* DESTINO */}
+                 
                   <View style={styles.odRow}>
                     <View style={styles.iconBox}>
                       <MaterialIcons name="location-on" size={22} color="#43b45e" />
                     </View>
                     <View style={styles.odTextBox}>
-                      <Text style={styles.odHour}>{formatShortDate(trip.scheduledArrivalDate)}</Text> {/* FORMAT_FECHA */}
+                      <Text style={styles.odHour}>{formatShortDate(trip.scheduledArrivalDate)}</Text>
                       <Text style={styles.odStreet} numberOfLines={1}>{destAddr.street}</Text>
                       <Text style={styles.odLocality}>{destAddr.locality}, {destAddr.city}</Text>
                     </View>
@@ -289,22 +290,22 @@ export default function CreateTripSheet({ onClose, driverId, onShowRoute, onStar
               <View style={styles.infoTripSection}>
                 <View style={styles.infoTripBlock}>
                   <MaterialCommunityIcons name="check-circle" size={26} color="#2e5fc3" />
-                  <Text style={styles.infoTripTitle}>Estado</Text>
+                  <Text style={styles.infoTripTitle}>Status</Text>
                   <Text style={styles.infoTripValue}>{trip.status}</Text>
                 </View>
                 <View style={styles.infoTripBlock}>
                   <MaterialCommunityIcons name="map-marker-distance" size={26} color="#45d07e" />
-                  <Text style={styles.infoTripTitle}>Distancia</Text>
+                  <Text style={styles.infoTripTitle}>Distance</Text>
                   <Text style={styles.infoTripValue}>{formatKm(trip.estimatedDistance)}</Text>
                 </View>
                 <View style={styles.infoTripBlock}>
                   <MaterialCommunityIcons name="cube-outline" size={26} color="#f2b93b" />
-                  <Text style={styles.infoTripTitle}>Tipo de carga</Text>
+                  <Text style={styles.infoTripTitle}>Type of load</Text>
                   <Text style={styles.infoTripValue}>{cargoType?.name}</Text>
                 </View>
                 <View style={styles.infoTripBlock}>
                   <MaterialCommunityIcons name="account-tie" size={26} color="#d99157" />
-                  <Text style={styles.infoTripTitle}>Asignado por</Text>
+                  <Text style={styles.infoTripTitle}>Assigned by</Text>
                   <Text style={styles.infoTripValue} numberOfLines={2}>
                     {admin?.name} {admin?.lastName}
                   </Text>
