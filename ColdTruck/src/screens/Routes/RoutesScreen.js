@@ -311,8 +311,17 @@ const startNavigation = async () => {
       </TouchableOpacity>
 
 
+
       {/* Esquina inferior derecha */}
       <View style={styles.rightButtons}>
+        {isNavigating && (
+          <TouchableOpacity
+            style={[styles.stopNavBtn, { backgroundColor: t.card }]}
+            onPress={stopNavigation}
+          >
+            <MaterialIcons name="close" size={24} color="red" />
+          </TouchableOpacity>
+        )}
         <TouchableOpacity style={[styles.actionBtn, { backgroundColor: t.card }]} onPress={zoomIn}>
           <FontAwesome6 name="add" size={24} color={t.icon} />
         </TouchableOpacity>
@@ -334,14 +343,7 @@ const startNavigation = async () => {
           <Text style={[styles.truckText, { color: t.text }]}>Overview</Text>
         </TouchableOpacity>
 
-        {isNavigating && (
-          <TouchableOpacity
-            style={[styles.stopNavBtn, { backgroundColor: t.card }]}
-            onPress={stopNavigation}
-          >
-            <MaterialIcons name="close" size={24} color="red" />
-          </TouchableOpacity>
-        )}
+        
 
       </View>
 
@@ -458,7 +460,7 @@ const styles = StyleSheet.create({
     marginVertical: 2,
     shadowColor: "#000", shadowOpacity: 0.09, shadowRadius: 2, elevation: 2,
   },
-  
+
   truckBtn: {
     backgroundColor: '#fff',
     borderRadius: 14,
