@@ -293,7 +293,12 @@ export default function CreateTripSheet({ onClose, driverId, onShowRoute, onStar
               <TouchableOpacity
                 style={styles.routeBtn}
                 onPress={() => {
-                  if (onStartNavigation) onStartNavigation();
+                  // NAVIGATION_FIX pass coordinates when starting navigation
+                  if (onStartNavigation && rute?.origin?.coordinates && rute?.destination?.coordinates) {
+                    onStartNavigation(rute.origin.coordinates, rute.destination.coordinates);
+                  } else if (onStartNavigation) {
+                    onStartNavigation();
+                  }
                   if (onClose) onClose();
                 }}
               >

@@ -24,7 +24,7 @@ import CustomMap from '../../components/MapComponents/CustomMap';
 
 const { width, height } = Dimensions.get('window');
 
-const NAV_PITCH = 60;
+const NAV_PITCH = 55;
 const themeColors = {
   light: {
     background: '#ededed',
@@ -88,6 +88,7 @@ export default function RoutesScreen() {
   const [route, setRoute] = useState([]); // coordenadas de la ruta
   const [autoRouteMarkers, setAutoRouteMarkers] = useState([]);
   const [autoRoute, setAutoRoute] = useState([]);
+  const [navRoute, setNavRoute] = useState([]);
   const [showCreateTrip, setShowCreateTrip] = useState(false);
 
 
@@ -157,12 +158,47 @@ const showAssignedRoute = async (originCoords, destinationCoords) => {
   setIsRouteMode(false);
 };
 
-const startNavigation = async () => {
+const startNavigation = async (originCoords, destinationCoords) => {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
         Alert.alert('Permiso de ubicación denegado');
         return;
+      }
+
+      const initial = await Location.getCurrentPositionAsync({});
+      const { latitude, longitude, heading: hdg } = initial.coords;
+      const currPos = { latitude, longitude };
+      setCurrentPosition(currPos);
+      setHeading(hdg || 0);
+
+      if (mapRef.current) {
+        // NAVIGATION_FIX pitch the camera when starting navigation
+        mapRef.current.animateCamera(
+          {
+            center: currPos,
+            heading: hdg || 0,
+            pitch: NAV_PITCH,
+            zoom: 18,
+          },
+          { duration: 500 }
+        );
+      }
+
+      if (originCoords && destinationCoords) {
+        const origin = { latitude: originCoords[1], longitude: originCoords[0] };
+        const dest = { latitude: destinationCoords[1], longitude: destinationCoords[0] };
+
+        setRouteMarkers([origin, dest]);
+
+        const destLeg = route.length === 0 ? await fetchRoute(origin, dest) : route; // NAVIGATION_FIX fetch optimized
+        if (route.length === 0) setRoute(destLeg);
+
+        const firstLeg = await fetchRoute(currPos, origin); // NAVIGATION_FIX
+        const combined = [...firstLeg, ...destLeg.slice(1)];
+        setNavRoute(combined);
+      } else {
+        setNavRoute([]);
       }
 
       const watcher = await Location.watchPositionAsync(
@@ -172,17 +208,17 @@ const startNavigation = async () => {
           distanceInterval: 1,
         },
         ({ coords }) => {
-          const { latitude, longitude, heading: hdg } = coords;
-          const pos = { latitude, longitude };
+          const { latitude: lat, longitude: lon, heading: hdg2 } = coords;
+          const pos = { latitude: lat, longitude: lon };
           setCurrentPosition(pos);
-          setHeading(hdg || 0);
+          setHeading(hdg2 || 0);
 
           if (mapRef.current) {
-            // NAV3D: keep the camera pitched while following location
+            // NAVIGATION_FIX keep pitch while following
             mapRef.current.animateCamera(
               {
-                center: { latitude, longitude },
-                heading: hdg || 0,
+                center: pos,
+                heading: hdg2 || 0,
                 pitch: NAV_PITCH,
                 zoom: 18,
               },
@@ -190,10 +226,9 @@ const startNavigation = async () => {
             );
           }
 
-          // TODO: enviar POST a /tracking/guardar con la posición y ID del viaje
           setMapRegion({
-            latitude,
-            longitude,
+            latitude: lat,
+            longitude: lon,
             latitudeDelta: 0.002,
             longitudeDelta: 0.002,
           });
@@ -218,6 +253,7 @@ const startNavigation = async () => {
     }
     setCurrentPosition(null);
     setHeading(0);
+    setNavRoute([]);
     setIsNavigating(false);
   };
 
@@ -296,7 +332,7 @@ const startNavigation = async () => {
   {route.length > 0 && (
     <Polyline
       // NAV3D prepend current location to route for immersive follow
-      coordinates={isNavigating && currentPosition ? [currentPosition, ...route] : route}
+      coordinates={isNavigating ? navRoute : route}
       strokeWidth={5}
       strokeColor="#1976D2"
     />
