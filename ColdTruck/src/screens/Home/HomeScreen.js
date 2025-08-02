@@ -7,6 +7,7 @@ import { fetchTruck } from '../../services/truckService';
 import { fetchRute } from '../../services/ruteService';
 import { fetchUser } from '../../services/userService';
 import { fetchCargoType } from '../../services/cargoTypeService';
+import { getValidTrips } from '../../utils/tripUtils';
 
 const statusLabels = {
   'In Transit': 'On route',
@@ -54,7 +55,10 @@ export default function HomeScreen({ navigation }) {
     return () => { isMounted = false; };
   }, [user]);
 
-  const filtered = trips.filter(trip =>
+  
+  const validTrips = getValidTrips(trips); 
+  const nextTrip = validTrips[0]; 
+  const filtered = validTrips.filter(trip =>
     tab === 'all'
       ? true
       : tab === 'onRoute'
@@ -114,7 +118,7 @@ export default function HomeScreen({ navigation }) {
             </View>
           )}
           ListEmptyComponent={
-            <Text style={{ color: "#999", textAlign: 'center', marginTop: 16 }}>No trips</Text>
+            <Text style={{ color: "#999", textAlign: 'center', marginTop: 16 }}>No hay rutas activas</Text>
           }
         />
       )}
