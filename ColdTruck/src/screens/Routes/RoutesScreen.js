@@ -24,6 +24,7 @@ import CustomMap from '../../components/MapComponents/CustomMap';
 
 const { width, height } = Dimensions.get('window');
 
+const NAV_PITCH = 60;
 const themeColors = {
   light: {
     background: '#ededed',
@@ -177,18 +178,25 @@ const startNavigation = async () => {
           setHeading(hdg || 0);
 
           if (mapRef.current) {
-            mapRef.current.animateToRegion(
+            // NAV3D: keep the camera pitched while following location
+            mapRef.current.animateCamera(
               {
-                latitude,
-                longitude,
-                latitudeDelta: 0.002,
-                longitudeDelta: 0.002,
+                center: { latitude, longitude },
+                heading: hdg || 0,
+                pitch: NAV_PITCH,
+                zoom: 18,
               },
-              500
+              { duration: 500 }
             );
           }
 
           // TODO: enviar POST a /tracking/guardar con la posición y ID del viaje
+          setMapRegion({
+            latitude,
+            longitude,
+            latitudeDelta: 0.002,
+            longitudeDelta: 0.002,
+          });
         }
       );
 
@@ -203,6 +211,10 @@ const startNavigation = async () => {
     if (locationWatcher) {
       locationWatcher.remove();
       setLocationWatcher(null);
+    }
+    if (mapRef.current) {
+      // NAV3D reset camera pitch when leaving navigation
+      mapRef.current.animateCamera({ pitch: 0 }, { duration: 300 });
     }
     setCurrentPosition(null);
     setHeading(0);
@@ -271,7 +283,8 @@ const startNavigation = async () => {
                 <CustomMap
   ref={mapRef}
   region={mapRegion}
-  showsUserLocation={true}
+  showsUserLocation={!isNavigating} // NAV3D hide blue dot in navigation
+  followsUserLocation={!isNavigating}
   style={RNStyleSheet.absoluteFillObject}
   onPress={handleMapPress}
   showsCompass={false}
@@ -281,13 +294,24 @@ const startNavigation = async () => {
   {/* Marcadores manuales */}
   <MapMarkers markers={routeMarkers} />
   {route.length > 0 && (
-    <Polyline coordinates={route} strokeWidth={5} strokeColor="#1976D2" />
+    <Polyline
+      // NAV3D prepend current location to route for immersive follow
+      coordinates={isNavigating && currentPosition ? [currentPosition, ...route] : route}
+      strokeWidth={5}
+      strokeColor="#1976D2"
+    />
   )}
 
   {/* Marcadores automáticos (viaje asignado) */}
   <MapMarkers markers={autoRouteMarkers} />
   {autoRoute.length > 0 && (
-    <Polyline coordinates={autoRoute} strokeWidth={5} strokeColor="#1976D2" />
+    
+    <Polyline
+      // NAV3D auto route when navigating
+      coordinates={isNavigating && currentPosition ? [currentPosition, ...autoRoute] : autoRoute}
+      strokeWidth={5}
+      strokeColor="#1976D2"
+    />
   )}
   {isNavigating && currentPosition && (
     <Marker
