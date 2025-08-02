@@ -6,10 +6,11 @@ import {
 import { MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { FontAwesome } from '@expo/vector-icons';
 
-import { fetchTripByDriver } from '../../services/tripService';
-import { fetchRute } from '../../services/ruteService';
+import { fetchTripsForDriver } from '../../services/tripService';
 import { fetchCargoType } from '../../services/cargoTypeService';
 import { fetchUser } from '../../services/userService';
+import { getValidTrips } from '../../utils/tripUtils'; 
+import { formatShortDate } from '../../utils/dateUtils'; 
 
 import { reverseGeocodeOSM } from '../../services/geocodeService';
 
@@ -23,11 +24,7 @@ const SHEET_MAX = SHEET_TOTAL_MOVEMENT;
 
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 
-function formatDateHour(dateStr) {
-  if (!dateStr) return '';
-  const d = new Date(dateStr);
-  return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
-}
+
 function formatKm(dist) {
   if (!dist) return "0 km";
   return `${(dist / 1000).toFixed(1)} km`;
@@ -48,7 +45,7 @@ export default function CreateTripSheet({ onClose, driverId, onShowRoute, onStar
 
   const panResponder = useRef(
     PanResponder.create({
-      onMoveShouldSetPanResponder: (evt, gesture) => Math.abs(gesture.dy) > 6,
+     onMoveShouldSetPanResponder: (evt, gesture) => Math.abs(gesture.dy) > 4,
       onPanResponderGrant: () => {
         setDragging(true);
         translateY.setOffset(translateY._value);
@@ -63,7 +60,7 @@ export default function CreateTripSheet({ onClose, driverId, onShowRoute, onStar
         setDragging(false);
         let currY = clamp(translateY._value, SHEET_MIN, SHEET_MAX);
 
-        if (gesture.dy > 120 || currY > SHEET_MIN + 120) {
+        if (gesture.dy > 80 || currY > SHEET_MIN + 80) { 
           closeSheet();
         } else {
           openSheet();
@@ -106,40 +103,41 @@ export default function CreateTripSheet({ onClose, driverId, onShowRoute, onStar
     return;
   }
 
-  fetchTripByDriver(driverId)
+  fetchTripsForDriver(driverId) // ASSIGN_VALIDATION
     .then(tripArr => {
-      //  usa el primer viaje si es array, o el objeto si no - terminado por ahora
-      const tripData = Array.isArray(tripArr) ? tripArr[0] : tripArr;
-      console.log('tripData:', tripData);
-
       if (!isMounted) return;
 
-      if (!tripData) {
-        setError('No se encontró viaje asignado.');
+      const validTrips = getValidTrips(tripArr); // ASSIGN_VALIDATION
+      const nextTrip = validTrips[0]; // ASSIGN_VALIDATION
+
+      if (!nextTrip) {
+        setTrip(null);
+        setError('No hay viajes próximos disponibles'); // ASSIGN_VALIDATION
         setLoading(false);
         return;
       }
-     
+
       if (
-        tripData.IDRute === undefined ||
-        tripData.IDCargoType === undefined ||
-        tripData.IDAdmin === undefined
+        nextTrip.IDRute === undefined ||
+        nextTrip.IDCargoType === undefined ||
+        nextTrip.IDAdmin === undefined
       ) {
         setError('Faltan datos en el viaje asignado');
         setLoading(false);
         return;
       }
-      setTrip(tripData);
+      setTrip(nextTrip); // ASSIGN_VALIDATION
 
       Promise.all([
-        fetchRute(tripData.IDRute),
-        fetchCargoType(tripData.IDCargoType),
-        fetchUser(tripData.IDAdmin),
+        fetchRute(nextTrip.IDRute),
+        fetchCargoType(nextTrip.IDCargoType),
+        fetchUser(nextTrip.IDAdmin),
       ]).then(async ([ruteData, cargoData, adminData]) => {
         if (!isMounted) return;
         setRute(ruteData);
         setCargoType(cargoData);
         setAdmin(adminData);
+
 
         // --- reverse geocode  --- para que lo copies
         if (ruteData?.origin?.coordinates) {
@@ -158,6 +156,7 @@ export default function CreateTripSheet({ onClose, driverId, onShowRoute, onStar
       });
     })
     .catch(error => {
+      setTrip(null);
       setError("No se pudo cargar el viaje asignado");
       setLoading(false);
     });
@@ -190,8 +189,11 @@ export default function CreateTripSheet({ onClose, driverId, onShowRoute, onStar
       </Animated.View>
     );
   }
-  if (error) {
-    return (
+
+  
+  return (
+    <View style={StyleSheet.absoluteFill} pointerEvents="box-none"> {/* BOTTOMSHEET_TOUCH */}
+      <TouchableOpacity style={styles.backdrop} onPress={closeSheet} activeOpacity={1} /> {/* BOTTOMSHEET_TOUCH */}
       <Animated.View
         style={[
           styles.sheet,
@@ -207,135 +209,123 @@ export default function CreateTripSheet({ onClose, driverId, onShowRoute, onStar
         ]}
         pointerEvents="box-none"
       >
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 48 }}>
-          <Text style={{ color: "red", fontSize: 16 }}>{error}</Text>
+        <View style={{ width: '100%', alignItems: 'center' }} {...panResponder.panHandlers}>
+          <Animated.View style={[styles.dragBarClosed, {
+            opacity: dragging ? 0.7 : 1,
+            transform: [{ scale: dragging ? 1.13 : 1 }],
+            shadowOpacity: dragging ? 0.23 : 0.11,
+            shadowRadius: dragging ? 9 : 7,
+            elevation: dragging ? 8 : 2,
+          }]} />
         </View>
-      </Animated.View>
-    );
-  }
 
-  return (
-    <Animated.View
-      style={[
-        styles.sheet,
-        {
-          height: EXPANDED_HEIGHT,
-          bottom: 0,
-          left: 0,
-          right: 0,
-          position: 'absolute',
-          transform: [{ translateY }],
-          zIndex: 999,
-        },
-      ]}
-      pointerEvents="box-none"
-    >
-      <View style={{ width: '100%', alignItems: 'center' }} {...panResponder.panHandlers}>
-        <Animated.View style={[styles.dragBarClosed, {
-          opacity: dragging ? 0.7 : 1,
-          transform: [{ scale: dragging ? 1.13 : 1 }],
-          shadowOpacity: dragging ? 0.23 : 0.11,
-          shadowRadius: dragging ? 9 : 7,
-          elevation: dragging ? 8 : 2,
-        }]} />
-      </View>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          style={{ flex: 1 }}
+          contentContainerStyle={{ paddingBottom: 18 }}
+          keyboardShouldPersistTaps="handled"
+        >
+          {trip ? (
+            <>
+              <View style={styles.cardSection}>
+                <Text style={styles.titleAssigned}>Datos del viaje asignado</Text>
+                <View style={styles.odWrapper}>
+                  {/* ORIGEN */}
+                  <View style={styles.odRow}>
+                    <View style={styles.iconBox}>
+                      <FontAwesome name="dot-circle-o" size={22} color="#1976D2" />
+                    </View>
+                    <View style={styles.odTextBox}>
+                      <Text style={styles.odHour}>{formatShortDate(trip.scheduledDepartureDate)}</Text> {/* FORMAT_FECHA */}
+                      <Text style={styles.odStreet} numberOfLines={1}>{originAddr.street}</Text>
+                      <Text style={styles.odLocality}>{originAddr.locality}, {originAddr.city}</Text>
+                    </View>
+                  </View>
+                  <View style={styles.odLineContainer}>
+                    <View style={styles.odLine} />
+                  </View>
+                  {/* DESTINO */}
+                  <View style={styles.odRow}>
+                    <View style={styles.iconBox}>
+                      <MaterialIcons name="location-on" size={22} color="#43b45e" />
+                    </View>
+                    <View style={styles.odTextBox}>
+                      <Text style={styles.odHour}>{formatShortDate(trip.scheduledArrivalDate)}</Text> {/* FORMAT_FECHA */}
+                      <Text style={styles.odStreet} numberOfLines={1}>{destAddr.street}</Text>
+                      <Text style={styles.odLocality}>{destAddr.locality}, {destAddr.city}</Text>
+                    </View>
+                  </View>
+                </View>
+                <View style={{ flexDirection: 'row', gap: 10, marginTop: 22, justifyContent: 'flex-end' }}>
+                    <TouchableOpacity
+                      style={styles.viewMapBtn}
+                      onPress={() => {
+                        if (onShowRoute && rute?.origin?.coordinates && rute?.destination?.coordinates) {
+                          onShowRoute(rute.origin.coordinates, rute.destination.coordinates);
+                          if (onClose) onClose();
+                        }
+                      }}
+                    >
+                      <MaterialIcons name="map" size={22} color="#1976D2" style={{ marginRight: 8 }} />
+                      <Text style={styles.viewMapText}>View Trip</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.routeBtn}
+                      onPress={() => {
+                        if (onStartNavigation && rute?.origin?.coordinates && rute?.destination?.coordinates) {
+                          onStartNavigation(rute.origin.coordinates, rute.destination.coordinates);
+                        } else if (onStartNavigation) {
+                          onStartNavigation();
+                        }
+                        if (onClose) onClose();
+                      }}
+                    >
+                      <MaterialIcons name="flag" size={24} color="#fff" style={{ marginRight: 8 }} />
+                      <Text style={styles.routeBtnText}>Start Trip</Text>
+                    </TouchableOpacity>
+                  </View>
 
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        style={{ flex: 1 }}
-        contentContainerStyle={{ paddingBottom: 18 }}
-        keyboardShouldPersistTaps="handled"
-      >
-        <View style={styles.cardSection}>
-          <Text style={styles.titleAssigned}>Datos del viaje asignado</Text>
-          <View style={styles.odWrapper}>
-            {/* ORIGEN */}
-            <View style={styles.odRow}>
-              <View style={styles.iconBox}>
-                <FontAwesome name="dot-circle-o" size={22} color="#1976D2" />
               </View>
-              <View style={styles.odTextBox}>
-                <Text style={styles.odHour}>{formatDateHour(trip.scheduledDepartureDate)}</Text>
-                <Text style={styles.odStreet} numberOfLines={1}>{originAddr.street}</Text>
-                <Text style={styles.odLocality}>{originAddr.locality}, {originAddr.city}</Text>
+              <View style={styles.infoTripSection}>
+                <View style={styles.infoTripBlock}>
+                  <MaterialCommunityIcons name="check-circle" size={26} color="#2e5fc3" />
+                  <Text style={styles.infoTripTitle}>Estado</Text>
+                  <Text style={styles.infoTripValue}>{trip.status}</Text>
+                </View>
+                <View style={styles.infoTripBlock}>
+                  <MaterialCommunityIcons name="map-marker-distance" size={26} color="#45d07e" />
+                  <Text style={styles.infoTripTitle}>Distancia</Text>
+                  <Text style={styles.infoTripValue}>{formatKm(trip.estimatedDistance)}</Text>
+                </View>
+                <View style={styles.infoTripBlock}>
+                  <MaterialCommunityIcons name="cube-outline" size={26} color="#f2b93b" />
+                  <Text style={styles.infoTripTitle}>Tipo de carga</Text>
+                  <Text style={styles.infoTripValue}>{cargoType?.name}</Text>
+                </View>
+                <View style={styles.infoTripBlock}>
+                  <MaterialCommunityIcons name="account-tie" size={26} color="#d99157" />
+                  <Text style={styles.infoTripTitle}>Asignado por</Text>
+                  <Text style={styles.infoTripValue} numberOfLines={2}>
+                    {admin?.name} {admin?.lastName}
+                  </Text>
+                </View>
               </View>
-            </View>
-            <View style={styles.odLineContainer}>
-              <View style={styles.odLine} />
-            </View>
-            {/* DESTINO */}
-            <View style={styles.odRow}>
-              <View style={styles.iconBox}>
-                <MaterialIcons name="location-on" size={22} color="#43b45e" />
-              </View>
-              <View style={styles.odTextBox}>
-                <Text style={styles.odHour}>{formatDateHour(trip.scheduledArrivalDate)}</Text>
-                <Text style={styles.odStreet} numberOfLines={1}>{destAddr.street}</Text>
-                <Text style={styles.odLocality}>{destAddr.locality}, {destAddr.city}</Text>
-              </View>
-            </View>
-          </View>
-          <View style={{ flexDirection: 'row', gap: 10, marginTop: 22, justifyContent: 'flex-end' }}>
-              <TouchableOpacity
-                style={styles.viewMapBtn}
-                onPress={() => {
-                  if (onShowRoute && rute?.origin?.coordinates && rute?.destination?.coordinates) {
-                    onShowRoute(rute.origin.coordinates, rute.destination.coordinates);
-                    // close sheet so the pins are visible on the map
-                   if (onClose) onClose();
-
-                  }
-                }}
-              >
-                <MaterialIcons name="map" size={22} color="#1976D2" style={{ marginRight: 8 }} />
-                <Text style={styles.viewMapText}>View Trip</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.routeBtn}
-                onPress={() => {
-                  // NAVIGATION_FIX pass coordinates when starting navigation
-                  if (onStartNavigation && rute?.origin?.coordinates && rute?.destination?.coordinates) {
-                    onStartNavigation(rute.origin.coordinates, rute.destination.coordinates);
-                  } else if (onStartNavigation) {
-                    onStartNavigation();
-                  }
-                  if (onClose) onClose();
-                }}
-              >
+            </>
+          ) : (
+            <View style={styles.cardSection}>
+              <Text style={styles.titleAssigned}>{error || 'No hay viajes próximos disponibles'}</Text>
+              <TouchableOpacity style={[styles.routeBtn, { backgroundColor: '#b0bec5' }]} disabled>
                 <MaterialIcons name="flag" size={24} color="#fff" style={{ marginRight: 8 }} />
                 <Text style={styles.routeBtnText}>Start Trip</Text>
               </TouchableOpacity>
             </View>
-
-        </View>
-        <View style={styles.infoTripSection}>
-          <View style={styles.infoTripBlock}>
-            <MaterialCommunityIcons name="check-circle" size={26} color="#2e5fc3" />
-            <Text style={styles.infoTripTitle}>Estado</Text>
-            <Text style={styles.infoTripValue}>{trip.status}</Text>
-          </View>
-          <View style={styles.infoTripBlock}>
-            <MaterialCommunityIcons name="map-marker-distance" size={26} color="#45d07e" />
-            <Text style={styles.infoTripTitle}>Distancia</Text>
-            <Text style={styles.infoTripValue}>{formatKm(trip.estimatedDistance)}</Text>
-          </View>
-          <View style={styles.infoTripBlock}>
-            <MaterialCommunityIcons name="cube-outline" size={26} color="#f2b93b" />
-            <Text style={styles.infoTripTitle}>Tipo de carga</Text>
-            <Text style={styles.infoTripValue}>{cargoType?.name}</Text>
-          </View>
-          <View style={styles.infoTripBlock}>
-            <MaterialCommunityIcons name="account-tie" size={26} color="#d99157" />
-            <Text style={styles.infoTripTitle}>Asignado por</Text>
-            <Text style={styles.infoTripValue} numberOfLines={2}>
-              {admin?.name} {admin?.lastName}
-            </Text>
-          </View>
-        </View>
-      </ScrollView>
-    </Animated.View>
+          )}
+        </ScrollView>
+      </Animated.View>
+    </View>
   );
 }
+
 
 const styles = StyleSheet.create({
   sheet: {
@@ -354,6 +344,10 @@ const styles = StyleSheet.create({
     marginTop: 11,
     marginBottom: 8,
     alignSelf: 'center',
+  },
+  backdrop: { // BOTTOMSHEET_TOUCH
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.2)',
   },
   cardSection: {
     backgroundColor: '#fff',
