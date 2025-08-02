@@ -123,7 +123,7 @@ export default function RoutesScreen() {
 
 const showAssignedRoute = async (originCoords, destinationCoords) => {
   if (!originCoords || !destinationCoords) return;
-
+  if (isNavigating) return;
   const start = { latitude: originCoords[1], longitude: originCoords[0] };
   const end = { latitude: destinationCoords[1], longitude: destinationCoords[0] };
 
@@ -148,10 +148,11 @@ const showAssignedRoute = async (originCoords, destinationCoords) => {
     latitudeDelta: latDelta,
     longitudeDelta: lngDelta,
   };
-  setMapRegion(region);
-
-  if (mapRef.current && mapRef.current.animateToRegion) {
-    mapRef.current.animateToRegion(region, 800);
+  if (!isNavigating) { // CAMERA_FIX
+    setMapRegion(region);
+    if (mapRef.current && mapRef.current.animateToRegion) {
+      mapRef.current.animateToRegion(region, 800);
+    }
   }
 
   // Desactiva modo ruta manual para evitar conflicto
@@ -226,12 +227,7 @@ const startNavigation = async (originCoords, destinationCoords) => {
             );
           }
 
-          setMapRegion({
-            latitude: lat,
-            longitude: lon,
-            latitudeDelta: 0.002,
-            longitudeDelta: 0.002,
-          });
+        
         }
       );
 
@@ -251,12 +247,37 @@ const startNavigation = async (originCoords, destinationCoords) => {
       // NAV3D reset camera pitch when leaving navigation
       mapRef.current.animateCamera({ pitch: 0 }, { duration: 300 });
     }
+
+    if (currentPosition) { // CAMERA_FIX restore region control
+      const region = {
+        latitude: currentPosition.latitude,
+        longitude: currentPosition.longitude,
+        latitudeDelta: zoom,
+        longitudeDelta: zoom,
+      };
+      setMapRegion(region);
+    }
+
     setCurrentPosition(null);
     setHeading(0);
     setNavRoute([]);
     setIsNavigating(false);
   };
 
+
+  useEffect(() => {
+    if (isNavigating && currentPosition) {
+      mapRef.current?.animateCamera(
+        {
+          center: currentPosition,
+          heading,
+          pitch: NAV_PITCH,
+          zoom: 18,
+        },
+        { duration: 450 }
+      );
+    }
+  }, [isNavigating, currentPosition, heading]);
   // ----------------
 
   // Centra el mapa en la ubicación del usuario al montar
@@ -269,6 +290,7 @@ const startNavigation = async (originCoords, destinationCoords) => {
 
   // Centrar en la ubicación del usuario
   const centerOnUser = async () => {
+    if (isNavigating) return;
     let { status } = await Location.requestForegroundPermissionsAsync();
     if (status !== 'granted') {
       Alert.alert('Permiso de ubicación denegado');
@@ -289,6 +311,7 @@ const startNavigation = async (originCoords, destinationCoords) => {
 
   // Aumentar zoom
   const zoomIn = () => {
+    if (!mapRegion || isNavigating) return; // CAMERA_FIX
     if (!mapRegion) return;
     const newZoom = Math.max(0.002, zoom / 2);
     setZoom(newZoom);
@@ -301,6 +324,7 @@ const startNavigation = async (originCoords, destinationCoords) => {
 
   // Disminuir zoom
   const zoomOut = () => {
+    if (!mapRegion || isNavigating) return; // CAMERA_FIX
     if (!mapRegion) return;
     const newZoom = Math.min(0.5, zoom * 2);
     setZoom(newZoom);
@@ -318,7 +342,7 @@ const startNavigation = async (originCoords, destinationCoords) => {
       {/* Mapa */}
                 <CustomMap
   ref={mapRef}
-  region={mapRegion}
+  region={isNavigating ? undefined : mapRegion} // CAMERA_FIX
   showsUserLocation={!isNavigating} // NAV3D hide blue dot in navigation
   followsUserLocation={!isNavigating}
   style={RNStyleSheet.absoluteFillObject}
