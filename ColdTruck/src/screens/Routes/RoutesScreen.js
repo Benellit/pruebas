@@ -1,11 +1,11 @@
-import React, { useRef, useEffect, useState, useContext } from 'react';
+import React, { useRef, useEffect, useState, useContext, useCallback} from 'react';
 
 import { View, StyleSheet, TouchableOpacity, Alert, Text, Dimensions, StyleSheet as RNStyleSheet, useColorScheme } from 'react-native';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 import Octicons from '@expo/vector-icons/Octicons';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useIsFocused } from '@react-navigation/native';
 import * as Location from 'expo-location';
 import { Marker, Polyline } from 'react-native-maps';
 import { fetchRoute } from '../../services/routeService'; 
@@ -24,6 +24,8 @@ import CustomMap from '../../components/MapComponents/CustomMap';
 import TrackingButton from '../../components/TrackingButton';
 import TrackingStopModal from '../../components/TrackingStopModal';
 import { showTrackingMessage } from '../../utils/flashMessage';
+
+const TRACKING_URL = 'http://192.168.1.82:3000/tracking/guardar';
 
 const { width, height } = Dimensions.get('window');
 
@@ -65,6 +67,7 @@ export default function RoutesScreen() {
   const toggleTheme = () => setTheme(prev => (prev === 'light' ? 'dark' : 'light'));
   const iconColor = theme === 'dark' ? '#fff' : '#222';
   const navigation = useNavigation();
+  const isFocused = useIsFocused();
 
   useEffect(() => {
     navigation.getParent()?.setOptions({
@@ -83,7 +86,7 @@ export default function RoutesScreen() {
   const [isNavigating, setIsNavigating] = useState(false);
   const [currentPosition, setCurrentPosition] = useState(null);
   const [heading, setHeading] = useState(0);
-  const [locationWatcher, setLocationWatcher] = useState(null);
+  const locationWatcher = useRef(null);
   const [trackingState, setTrackingState] = useState('inactive');
   const [showStopModal, setShowStopModal] = useState(false);
 
@@ -164,7 +167,18 @@ const showAssignedRoute = async (originCoords, destinationCoords) => {
   setIsRouteMode(false);
 };
 
-const startNavigation = async (originCoords, destinationCoords) => {
+const startNavigation = async (tripId, originCoords, destinationCoords) => {
+    // SIEMPRE limpia antes de crear uno nuevo
+    if (locationWatcher.current) {
+      console.log('[Tracking] Limpiando watcher anterior');
+        await locationWatcher.current.remove();
+        locationWatcher.current = null;
+    }
+    if (!tripId) {
+      setTrackingState('error');
+      showTrackingMessage('error', 'No se encontró el ID del viaje.');
+      return;
+    }
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
@@ -208,13 +222,17 @@ const startNavigation = async (originCoords, destinationCoords) => {
         setNavRoute([]);
       }
 
-      const watcher = await Location.watchPositionAsync(
+      if (locationWatcher.current) {
+        await locationWatcher.current.remove();
+        locationWatcher.current = null;
+      }
+      locationWatcher.current = await Location.watchPositionAsync(
         {
           accuracy: Location.Accuracy.Highest,
-          timeInterval: 1000,
-          distanceInterval: 1,
+          timeInterval: 10000,
+          distanceInterval: 0,
         },
-        ({ coords }) => {
+        async ({ coords }) => {
           const { latitude: lat, longitude: lon, heading: hdg2 } = coords;
           const pos = { latitude: lat, longitude: lon };
           setCurrentPosition(pos);
@@ -233,27 +251,35 @@ const startNavigation = async (originCoords, destinationCoords) => {
             );
           }
 
+          try {
+            await fetch(TRACKING_URL, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ lat, lng: lon, IDTrip: tripId }),
+            });
+          } catch (err) {
+            showTrackingMessage('error', 'No se pudo enviar tu ubicación. Revisa tu conexión.');
+          }
         
         }
       );
 
-      setLocationWatcher(watcher);
       setIsNavigating(true);
-    setTrackingState('active');
+      setTrackingState('active');
       showTrackingMessage('success', 'Navegación iniciada: tu ubicación está siendo monitoreada.');
       setTimeout(() => {
         showTrackingMessage('info', 'Puedes cerrar el modo navegación presionando el botón rojo.');
       }, 3000);
     } catch (err) {
       setTrackingState('error');
-      showTrackingMessage('error', 'No se pudo enviar tu ubicación. Revisa tu conexión.');
+      showTrackingMessage('error', 'No se pudo iniciar el seguimiento.');
     }
   };
 
-  const stopNavigation = () => {
-    if (locationWatcher) {
-      locationWatcher.remove();
-      setLocationWatcher(null);
+  const stopNavigation = useCallback(() => {
+    if (locationWatcher.current) {
+      locationWatcher.current.remove();
+      locationWatcher.current = null;
     }
     if (mapRef.current) {
       // NAV3D reset camera pitch when leaving navigation
@@ -276,7 +302,7 @@ const startNavigation = async (originCoords, destinationCoords) => {
     setIsNavigating(false);
     setTrackingState('inactive');
     showTrackingMessage('info', 'Modo navegación finalizado: ya no se enviarán actualizaciones.');
-  };
+  }, [currentPosition, zoom]);
 
 
   useEffect(() => {
@@ -298,9 +324,15 @@ const startNavigation = async (originCoords, destinationCoords) => {
   useEffect(() => {
     centerOnUser();
      return () => {
-      if (locationWatcher) locationWatcher.remove();
+      stopNavigation();
     };
   }, []);
+
+  useEffect(() => {
+    if (!isFocused) {
+      stopNavigation();
+    }
+  }, [isFocused]);
 
   // Centrar en la ubicación del usuario
   const centerOnUser = async () => {
