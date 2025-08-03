@@ -9,10 +9,24 @@ export async function reverseGeocodeOSM([lng, lat]) {
     });
     if (!res.ok) throw new Error('No se pudo obtener la dirección');
     const data = await res.json();
+    let street = data.address.road || data.address.pedestrian || data.address.highway || data.display_name || '';
+    let locality = data.address.suburb || data.address.village || data.address.town || data.address.city || '';
+    let city = data.address.city || data.address.town || data.address.state || '';
+    const parts = [];
+    const add = (val) => {
+      const norm = (val || '').trim();
+      if (norm && !parts.some(p => p.toLowerCase() === norm.toLowerCase())) {
+        parts.push(norm);
+      }
+    };
+    add(street);
+    add(locality);
+    add(city);
+    const [uStreet = '', uLocality = '', uCity = ''] = parts; 
     return {
-      street: data.address.road || data.address.pedestrian || data.address.highway || data.display_name || '',
-      locality: data.address.suburb || data.address.village || data.address.town || data.address.city || '',
-      city: data.address.city || data.address.town || data.address.state || '',
+            street: uStreet,
+      locality: uLocality,
+      city: uCity,
       display_name: data.display_name
     };
   } catch (err) {

@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useContext } from 'react';
 import {
   View,
   Text,
@@ -8,15 +8,23 @@ import {
   Dimensions,
   PanResponder,
   BackHandler,
+  ScrollView,
+  ActivityIndicator,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { AuthContext } from '../../context/AuthContext';
+import { fetchTripsForDriver } from '../../services/tripService';
+import { fetchTruck } from '../../services/truckService';
+import { fetchRute } from '../../services/ruteService';
+import { fetchCargoType } from '../../services/cargoTypeService';
+import { fetchUser } from '../../services/userService';
+import { getValidTrips } from '../../utils/tripUtils';
 
 const { width, height } = Dimensions.get('window');
-const EXPANDED_HEIGHT = Math.round(height * 0.9);
+const EXPANDED_HEIGHT = Math.round(height * 0.91);
 const COLLAPSED_HEIGHT = 90;
 
-// Límites
 const DOWN_OVERSHOOT = 15;
 const UP_MARGIN = 160;
 const SHEET_TOTAL_MOVEMENT = EXPANDED_HEIGHT - COLLAPSED_HEIGHT;
@@ -24,11 +32,115 @@ const SHEET_MIN = UP_MARGIN;
 const SHEET_MAX = SHEET_TOTAL_MOVEMENT + DOWN_OVERSHOOT;
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 
-// Props: theme ('light'|'dark'), t (colores del tema actual)
+// -------- Tarjeta vertical, datos y estilo Home --------
+function TripCard({ trip, isCurrent, t, theme }) {
+  return (
+    <View
+      style={[
+        cardStyles.card,
+        {
+          backgroundColor: theme === 'dark' ? (isCurrent ? t.card : t.searchSection) : (isCurrent ? "#fff" : "#f4f7fb"),
+          borderColor: isCurrent
+            ? (theme === 'dark' ? '#8ec3b9' : '#1976d2')
+            : (theme === 'dark' ? '#344863' : '#ececec'),
+          shadowOpacity: isCurrent ? 0.12 : 0.06,
+          elevation: isCurrent ? 3 : 1,
+        },
+      ]}
+    >
+      {/* Header: Título y distancia */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+          <MaterialCommunityIcons name="truck" size={26} color="#1976d2" style={{ marginRight: 7 }} />
+          <Text style={cardStyles.cardTitle} numberOfLines={1}>
+            {trip._id} - {trip.rute?.name}
+          </Text>
+        </View>
+        <Text style={[
+          cardStyles.cardDistance,
+          { backgroundColor: isCurrent ? "#e6f0fd" : "#f4f7fb", color: "#1976d2" }
+        ]}>
+          {trip.estimatedDistance ? `${(trip.estimatedDistance / 1000).toFixed(1)} km` : '-- km'}
+        </Text>
+      </View>
+      {/* Body */}
+      <Text style={cardStyles.cardCargo}>Tipo de carga: {trip.cargoType?.name}</Text>
+      <Text style={cardStyles.cardDriver}>Asignado por: {trip.admin?.name || '--'}</Text>
+      <Text style={cardStyles.cardDate}>{trip.formattedDate}</Text>
+    </View>
+  );
+}
+
+const formatDeparture = (dateStr) => {
+  if (!dateStr) return '';
+  try {
+    // Ej: Sat, 2 Aug, 08:15 AM
+    return new Date(dateStr).toLocaleString('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+    });
+  } catch {
+    return dateStr;
+  }
+};
+
 export default function FloatingSearchBar({ onClose, theme = 'light', t }) {
   const [dragging, setDragging] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const translateY = useRef(new Animated.Value(SHEET_MAX)).current;
+
+  const { user } = useContext(AuthContext);
+  const [trips, setTrips] = useState([]);
+  const [loadingTrips, setLoadingTrips] = useState(true);
+
+  useEffect(() => {
+    let mounted = true;
+    async function loadTrips() {
+      if (!user?.id) {
+        setTrips([]);
+        setLoadingTrips(false);
+        return;
+      }
+      try {
+        setLoadingTrips(true);
+        const raw = await fetchTripsForDriver(user.id);
+        const valid = getValidTrips(raw);
+        const enriched = await Promise.all(
+          valid.map(async (trip) => {
+            try {
+              const [truck, rute, cargoType, admin] = await Promise.all([
+                fetchTruck(trip.IDTruck),
+                fetchRute(trip.IDRute),
+                fetchCargoType(trip.IDCargoType),
+                fetchUser(trip.IDAdmin),
+              ]);
+              return {
+                ...trip,
+                truck,
+                rute,
+                cargoType,
+                admin,
+                formattedDate: formatDeparture(trip.scheduledDepartureDate),
+              };
+            } catch {
+              return trip;
+            }
+          })
+        );
+        if (mounted) setTrips(enriched);
+      } catch {
+        if (mounted) setTrips([]);
+      } finally {
+        if (mounted) setLoadingTrips(false);
+      }
+    }
+    loadTrips();
+    return () => { mounted = false; };
+  }, [user]);
 
   useEffect(() => {
     const handleBack = () => {
@@ -164,34 +276,64 @@ export default function FloatingSearchBar({ onClose, theme = 'light', t }) {
             </TouchableOpacity>
           </View>
         </View>
-        {/* Contenido al abrir */}
+        {/* Tarjetas de viajes en columna */}
         <View style={[styles.bottomSection]}>
-          <TouchableOpacity style={[
-            styles.listItem,
-            {
-              backgroundColor: t.searchSection,
-              borderColor: theme === 'dark' ? '#253860' : '#e3eefd',
-            }
-          ]}>
-            <Ionicons name="location" size={23} color={theme === 'dark' ? '#8ec3b9' : '#1976D2'} style={{ marginRight: 12 }} />
-            <View>
-              <Text style={{ fontWeight: 'bold', fontSize: 17, color: t.text }}>Oxxo</Text>
-              <Text style={{ color: theme === 'dark' ? '#c2d6ea' : '#757575' }}>Calle 5 de Mayo, Maclovio Rojas, 22...</Text>
-            </View>
-            <View style={{ marginLeft: 'auto', flexDirection: 'row', alignItems: 'center' }}>
-              <Text style={{ color: '#aaa', fontSize: 13, marginRight: 6 }}>691 m</Text>
-            </View>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.deleteHistory}>
-            <Text style={{ color: theme === 'dark' ? '#b8cdfc' : '#223', fontWeight: 'bold' }}>
-              Borrar todo el historial
-            </Text>
-          </TouchableOpacity>
+          {loadingTrips ? (
+            <ActivityIndicator color={theme === 'dark' ? '#8ec3b9' : '#1976D2'} />
+          ) : trips.length ? (
+            <ScrollView showsVerticalScrollIndicator={false} style={{ marginTop: 4 }}>
+              {trips.map((trip, idx) => (
+                <TripCard
+                  key={trip._id || idx}
+                  trip={trip}
+                  isCurrent={idx === 0}
+                  t={t}
+                  theme={theme}
+                />
+              ))}
+            </ScrollView>
+          ) : (
+            <Text style={{ color: t.text, opacity: 0.6, textAlign: 'center' }}>No hay viajes activos</Text>
+          )}
         </View>
       </Animated.View>
     </>
   );
 }
+
+// --------- Estilos Home, columna vertical ----------
+
+const cardStyles = StyleSheet.create({
+  card: {
+    backgroundColor: "#fff",
+    borderRadius: 15,
+    padding: 13,
+    minHeight: 118,  // igual a Home
+    width: '99%',
+    marginBottom: 15,
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 1,
+    borderColor: "#ececec",
+    borderWidth: 1,
+    justifyContent: 'center'
+  },
+  cardTitle: { fontSize: 17, fontWeight: 'bold', color: '#184081', marginLeft: 2, flex: 1 },
+  cardCargo: { color: "#1976d2", fontSize: 13.2, marginTop: 4, fontWeight: 'bold' },
+  cardDriver: { color: "#4e659c", fontSize: 13, marginTop: 2 },
+  cardDate: { color: "#23314b", fontSize: 13.3, marginTop: 2 },
+  cardDistance: {
+    minWidth: 54,
+    paddingVertical: 2,
+    paddingHorizontal: 8,
+    borderRadius: 10,
+    textAlign: 'center',
+    fontWeight: 'bold',
+    fontSize: 13,
+    alignSelf: 'flex-end'
+  },
+});
 
 const styles = StyleSheet.create({
   sheet: {
@@ -216,7 +358,7 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
   },
   searchBarContainer: {
-    width: width - 34,
+    width: width - 10,
     height: 41,
     flexDirection: 'row',
     alignItems: 'center',
@@ -251,24 +393,7 @@ const styles = StyleSheet.create({
   },
   bottomSection: {
     flex: 1,
-    paddingHorizontal: 19,
+    paddingHorizontal: 8,
     marginTop: 6,
-  },
-  listItem: {
-    backgroundColor: '#edf3fe',
-    borderRadius: 13,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 13,
-    paddingHorizontal: 11,
-    marginBottom: 14,
-    borderWidth: 1.5,
-    borderColor: '#e3eefd',
-  },
-  deleteHistory: {
-    alignSelf: 'center',
-    marginTop: 8,
-    marginBottom: 8,
-    padding: 6,
   },
 });

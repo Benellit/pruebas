@@ -31,6 +31,19 @@ function formatKm(dist) {
   return `${(dist / 1000).toFixed(1)} km`;
 }
 
+function formatLocalityCity(locality, city) { 
+  const parts = [locality, city]
+    .map(p => (p || '').trim())
+    .filter(Boolean);
+  const unique = [];
+  parts.forEach(p => {
+    if (!unique.some(u => u.toLowerCase() === p.toLowerCase())) {
+      unique.push(p);
+    }
+  });
+  return unique.join(', ');
+}
+
 export default function CreateTripSheet({ onClose, driverId, onShowRoute, onStartNavigation }) {
   const [dragging, setDragging] = useState(false);
   const translateY = useRef(new Animated.Value(SHEET_MAX)).current;
