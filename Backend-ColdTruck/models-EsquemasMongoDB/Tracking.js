@@ -6,7 +6,7 @@ const trackingSchema = new mongoose.Schema({
     enum: ['Point'],
     required: true,
     default: 'Point'
-  },
+  }, 
   coordinates: {
     type: [Number],
     required: true,
@@ -23,6 +23,6 @@ const trackingSchema = new mongoose.Schema({
     type: Number,
     required: true
   }
-});
+}, { collection: 'tracking' });
 
 module.exports = mongoose.model('Tracking', trackingSchema);

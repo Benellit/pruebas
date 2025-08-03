@@ -57,7 +57,7 @@ export default function CreateTripSheet({ onClose, driverId, onShowRoute, onStar
   const [destAddr, setDestAddr] = useState({ street: '', locality: '', city: '' });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const { startTracking, stopTracking, trackingActive, error: trackingError } = useTripTracking(trip?.IDTrip);
+  const { startTracking, stopTracking, trackingActive, error: trackingError } = useTripTracking(trip?._id);
 
 
   const panResponder = useRef(
@@ -306,7 +306,12 @@ export default function CreateTripSheet({ onClose, driverId, onShowRoute, onStar
                     <TouchableOpacity
                       style={styles.routeBtn}
                       onPress={() => {
-                        startTracking();
+                        if (trip && trip._id) { 
+                            startTracking();
+                           
+                          } else {
+                            alert('No se encontró el ID del viaje');
+                          }
                         if (onStartNavigation && rute?.origin?.coordinates && rute?.destination?.coordinates) {
                           onStartNavigation(rute.origin.coordinates, rute.destination.coordinates);
                         } else if (onStartNavigation) {
