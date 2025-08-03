@@ -1,14 +1,13 @@
-import { showMessage } from 'react-native-flash-message';
+import { showMessage } from "react-native-flash-message";
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
-const iconMap = {
-  success: { icon: 'check-circle', color: '#45d07e' },
-  error: { icon: 'alert-circle', color: '#e74c3c' },
-  warning: { icon: 'alert', color: '#f8d24c' },
-  info: { icon: 'information', color: '#1a76fe' },
-};
-
 export function showTrackingMessage(type = 'info', message = '') {
+  const iconMap = {
+    success: { icon: 'check-circle', color: '#38c57d' },
+    error:   { icon: 'alert-circle', color: '#e74c3c' },
+    warning: { icon: 'alert',        color: '#f8d24c' },
+    info:    { icon: 'information',  color: '#1976D2' },
+  };
   const { icon, color } = iconMap[type] || iconMap.info;
   showMessage({
     message,
@@ -19,18 +18,19 @@ export function showTrackingMessage(type = 'info', message = '') {
       <MaterialCommunityIcons name={icon} size={22} color={color} style={{ marginRight: 8 }} />
     ),
     style: {
-      borderLeftWidth: 5,
+      borderLeftWidth: 6,
       borderLeftColor: color,
-      borderRadius: 13,
-      shadowColor: '#111',
-      shadowOpacity: 0.1,
-      shadowRadius: 7,
-      elevation: 2,
+      borderRadius: 16,
+      shadowColor: color,
+      shadowOpacity: 0.18,
+      shadowRadius: 12,
+      elevation: 3,
       alignItems: 'center',
-      margin: 8,
-      paddingVertical: 15,
+      margin: 12,
+      paddingVertical: 16,
+      marginTop: 30,
     },
-    duration: 3000,
-    titleStyle: { fontWeight: 'bold', fontSize: 16 },
+    duration: 4500,
+    titleStyle: { fontWeight: 'bold', fontSize: 17 },
   });
 }

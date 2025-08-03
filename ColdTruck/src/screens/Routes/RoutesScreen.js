@@ -22,6 +22,7 @@ import ArrowImg from '../../../assets/arrow.png';
 
 import CustomMap from '../../components/MapComponents/CustomMap';
 import TrackingButton from '../../components/TrackingButton';
+import TrackingStopModal from '../../components/TrackingStopModal';
 import { showTrackingMessage } from '../../utils/flashMessage';
 
 const { width, height } = Dimensions.get('window');
@@ -84,6 +85,7 @@ export default function RoutesScreen() {
   const [heading, setHeading] = useState(0);
   const [locationWatcher, setLocationWatcher] = useState(null);
   const [trackingState, setTrackingState] = useState('inactive');
+  const [showStopModal, setShowStopModal] = useState(false);
 
   // ----- Ruta -----
   const [isRouteMode, setIsRouteMode] = useState(false);
@@ -413,7 +415,7 @@ const startNavigation = async (originCoords, destinationCoords) => {
         {isNavigating && (
           <TouchableOpacity
             style={[styles.stopNavBtn, { backgroundColor: t.card }]}
-            onPress={stopNavigation}
+             onPress={() => setShowStopModal(true)}
           >
             <MaterialIcons name="close" size={24} color="red" />
           </TouchableOpacity>
@@ -476,7 +478,14 @@ const startNavigation = async (originCoords, destinationCoords) => {
         />
       )}
       {showRoutesSheet && <RoutesSheet onClose={() => setShowRoutesSheet(false)} />}
-
+        <TrackingStopModal
+        visible={showStopModal}
+        onConfirm={() => {
+          setShowStopModal(false);
+          stopNavigation();
+        }}
+        onCancel={() => setShowStopModal(false)}
+      />
 
       {/* Barra de búsqueda flotante */}
 

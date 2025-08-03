@@ -16,7 +16,7 @@ exports.guardarTracking = async (req, res) => {
 
     const nuevoTracking = new Tracking({
       type: 'Point',
-      coordinates: [lng, lat], // formato GeoJSON: [longitud, latitud]
+      coordinates: [lng, lat], 
       dateTime: new Date(),
       IDTrip
     });
