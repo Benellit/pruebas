@@ -1,7 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, Animated, Dimensions,
-  ScrollView, PanResponder, ActivityIndicator
+  ScrollView, PanResponder, ActivityIndicator, Alert
 } from 'react-native';
 import { MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { FontAwesome } from '@expo/vector-icons';
@@ -14,6 +14,7 @@ import { formatShortDate } from '../../utils/dateUtils';
 import { fetchRute } from '../../services/ruteService';
 
 import { reverseGeocodeOSM } from '../../services/geocodeService';
+import useTripTracking from '../../hooks/useTripTracking';
 
 const { width, height } = Dimensions.get('window');
 const EXPANDED_HEIGHT = Math.round(height * 0.91);
@@ -56,6 +57,8 @@ export default function CreateTripSheet({ onClose, driverId, onShowRoute, onStar
   const [destAddr, setDestAddr] = useState({ street: '', locality: '', city: '' });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const { startTracking, stopTracking, trackingActive, error: trackingError } = useTripTracking(trip?.IDTrip);
+
 
   const panResponder = useRef(
     PanResponder.create({
@@ -87,6 +90,16 @@ export default function CreateTripSheet({ onClose, driverId, onShowRoute, onStar
     openSheet();
   }, []);
 
+
+   useEffect(() => {
+    return () => {
+      if (trackingActive) {
+        Alert.alert('Tracking detenido, la navegación se pausó');
+        stopTracking();
+      }
+    };
+  }, [trackingActive, stopTracking]);
+
   const openSheet = () => {
     Animated.timing(translateY, {
       toValue: SHEET_MIN,
@@ -100,6 +113,10 @@ export default function CreateTripSheet({ onClose, driverId, onShowRoute, onStar
       duration: 150,
       useNativeDriver: true,
     }).start(() => {
+      if (trackingActive) {
+        Alert.alert('Tracking detenido, la navegación se pausó');
+        stopTracking();
+      }
       if (onClose) onClose();
     });
   };
@@ -239,6 +256,9 @@ export default function CreateTripSheet({ onClose, driverId, onShowRoute, onStar
           contentContainerStyle={{ paddingBottom: 18 }}
           keyboardShouldPersistTaps="handled"
         >
+          {trackingError ? (
+            <Text style={styles.trackingError}>{trackingError}</Text>
+          ) : null}
           {trip ? (
             <>
               <View style={styles.cardSection}>
@@ -286,6 +306,7 @@ export default function CreateTripSheet({ onClose, driverId, onShowRoute, onStar
                     <TouchableOpacity
                       style={styles.routeBtn}
                       onPress={() => {
+                        startTracking();
                         if (onStartNavigation && rute?.origin?.coordinates && rute?.destination?.coordinates) {
                           onStartNavigation(rute.origin.coordinates, rute.destination.coordinates);
                         } else if (onStartNavigation) {
@@ -520,5 +541,11 @@ infoTripBlock: {
     fontSize: 14.6,
     textAlign: 'center',
     marginBottom: 2,
+  },
+  trackingError: {
+    color: 'red',
+    textAlign: 'center',
+    marginBottom: 8,
+    marginTop: 4,
   },
 });
