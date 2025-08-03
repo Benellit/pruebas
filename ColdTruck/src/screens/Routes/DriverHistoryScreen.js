@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { MaterialIcons, FontAwesome, MaterialCommunityIcons } from '@expo/vector-icons';
 import { fetchDriverHistoryTrips } from '../../services/tripService';
+import { fetchRute } from '../../services/ruteService';
 import { reverseGeocodeOSM } from '../../services/geocodeService';
 import { formatShortDate } from '../../utils/dateUtils'; // Ajusta si tu formato incluye hora, si no te paso uno
 import dayjs from 'dayjs';
@@ -60,17 +61,28 @@ export default function DriverHistoryScreen({ navigation, route }) {
         const valid = (data || []).filter(t =>
           ["Completed", "Canceled", "Paused"].includes(t.status)
         );
-        // Obtén direcciones legibles para origen y destino
-        const withAddresses = await Promise.all(
+       const withDetails = await Promise.all(
           valid.map(async t => {
+            let rute = t.rute;
+            if (!rute && t.IDRute !== undefined) {
+              try {
+                rute = await fetchRute(t.IDRute);
+              } catch (err) {
+                // ignore
+              }
+            }
             const [orig, dest] = await Promise.all([
-              t.rute?.origin?.coordinates ? reverseGeocodeOSM(t.rute.origin.coordinates) : { street: '', locality: '', city: '' },
-              t.rute?.destination?.coordinates ? reverseGeocodeOSM(t.rute.destination.coordinates) : { street: '', locality: '', city: '' }
+              rute?.origin?.coordinates
+                ? reverseGeocodeOSM(rute.origin.coordinates)
+                : { street: '', locality: '', city: '' },
+              rute?.destination?.coordinates
+                ? reverseGeocodeOSM(rute.destination.coordinates)
+                : { street: '', locality: '', city: '' }
             ]);
             return {
               ...t,
               rute: {
-                ...t.rute,
+                ...(rute || {}),
                 originAddr: orig,
                 destinationAddr: dest,
               },
@@ -78,7 +90,7 @@ export default function DriverHistoryScreen({ navigation, route }) {
           })
         );
         if (!mounted) return;
-        setTrips(withAddresses);
+        setTrips(withDetails);
       } catch (e) {
         // Error handling opcional
       } finally {

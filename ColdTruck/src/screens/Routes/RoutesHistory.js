@@ -1,32 +1,51 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useContext } from 'react';
 import { View, Text, FlatList, ActivityIndicator, Alert, TouchableOpacity } from 'react-native';
 import styles from '../shared/mapStyles';
 import { conexion } from '../../../conexion';
-
-export default function RoutesHistory() {
+import { fetchTrip } from '../../services/tripService';
+import { AuthContext } from '../../context/AuthContext';
+export default function RoutesHistory({ route }) {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { user } = useContext(AuthContext);
+  const driverId = route?.params?.driverId || user?.id;
 
   useEffect(() => {
     const fetchTracking = async () => {
       try {
         const response = await fetch(`${conexion}/tracking`);
         const data = await response.json();
-        // Agrupar por IDTrip
         const trips = {};
         data.forEach(t => {
           if (!trips[t.IDTrip]) trips[t.IDTrip] = [];
           trips[t.IDTrip].push(t);
         });
-        setHistory(Object.entries(trips)); // [ [IDTrip, [trackingPoints]] ]
+        const entries = await Promise.all(
+          Object.entries(trips).map(async ([IDTrip, points]) => {
+            try {
+              const tripInfo = await fetchTrip(IDTrip);
+              if (tripInfo && String(tripInfo.IDDriver) === String(driverId)) {
+                return [IDTrip, points];
+              }
+            } catch (e) {
+              // ignore fetch errors
+            }
+            return null;
+          })
+        );
+        setHistory(entries.filter(Boolean));
       } catch (error) {
         Alert.alert('Error al obtener historial', error.message);
       } finally {
         setLoading(false);
       }
     };
-    fetchTracking();
-  }, []);
+    if (driverId) {
+      fetchTracking();
+    } else {
+      setLoading(false);
+    }
+  }, [driverId]);
 
   if (loading) return <ActivityIndicator style={{ marginTop: 50 }} />;
 
