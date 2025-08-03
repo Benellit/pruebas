@@ -277,16 +277,16 @@ const startNavigation = async (tripId, originCoords, destinationCoords) => {
   };
 
   const stopNavigation = useCallback(() => {
+    const wasNavigating = isNavigating; // Guarda el estado actual antes de limpiar
+
     if (locationWatcher.current) {
       locationWatcher.current.remove();
       locationWatcher.current = null;
     }
     if (mapRef.current) {
-      // NAV3D reset camera pitch when leaving navigation
       mapRef.current.animateCamera({ pitch: 0 }, { duration: 300 });
     }
-
-    if (currentPosition) { // CAMERA_FIX restore region control
+    if (currentPosition) {
       const region = {
         latitude: currentPosition.latitude,
         longitude: currentPosition.longitude,
@@ -295,14 +295,18 @@ const startNavigation = async (tripId, originCoords, destinationCoords) => {
       };
       setMapRegion(region);
     }
-
     setCurrentPosition(null);
     setHeading(0);
     setNavRoute([]);
     setIsNavigating(false);
     setTrackingState('inactive');
-    showTrackingMessage('info', 'Modo navegación finalizado: ya no se enviarán actualizaciones.');
-  }, [currentPosition, zoom]);
+
+    // SOLO muestra el mensaje si SÍ estaba en navegación
+    if (wasNavigating) {
+      showTrackingMessage('info', 'Modo navegación finalizado: ya no se enviarán actualizaciones.');
+    }
+}, [currentPosition, zoom, isNavigating]);
+
 
 
   useEffect(() => {

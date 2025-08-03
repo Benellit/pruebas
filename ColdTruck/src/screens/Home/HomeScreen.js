@@ -10,7 +10,7 @@ import { fetchCargoType } from '../../services/cargoTypeService';
 import { getValidTrips } from '../../utils/tripUtils';
 
 const statusLabels = {
-  'In Transit': 'On route',
+  'Scheduled': 'Scheduled',    
   'Completed': 'Finished',
   'Paused': 'Paused'
 };
@@ -59,12 +59,13 @@ export default function HomeScreen({ navigation }) {
   const validTrips = getValidTrips(trips); 
   const nextTrip = validTrips[0]; 
   const filtered = validTrips.filter(trip =>
-    tab === 'all'
-      ? true
-      : tab === 'onRoute'
-        ? trip.status === 'In Transit'
-        : trip.status === 'Completed'
-  );
+  tab === 'all'
+    ? true
+    : tab === 'scheduled'
+      ? trip.status === 'Scheduled'
+      : trip.status === 'Completed'
+);
+
 
   return (
     <View style={styles.container}>
@@ -87,7 +88,7 @@ export default function HomeScreen({ navigation }) {
       {/* Tabs */}
       <View style={styles.tabsRow}>
         <TabBtn label="All" active={tab === 'all'} onPress={() => setTab('all')} />
-        <TabBtn label="On Route" active={tab === 'onRoute'} onPress={() => setTab('onRoute')} />
+        <TabBtn label="Scheduled" active={tab === 'scheduled'} onPress={() => setTab('scheduled')} />
         <TabBtn label="Finished" active={tab === 'finished'} onPress={() => setTab('finished')} />
       </View>
       {/* Truck Cards */}
