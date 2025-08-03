@@ -43,10 +43,28 @@ export default function DriverHistoryScreen({ navigation, route }) {
     async function load() {
       setLoading(true);
       try {
-        const trips = await fetchDriverHistoryTrips(driverId);
-        // Opcional: reverse geocode para cada viaje, puedes hacerlo aquí si no es mucha data
+        const data = await fetchDriverHistoryTrips(driverId);
+        const valid = (data || []).filter(t =>
+          ["Completed", "Canceled", "Paused"].includes(t.status)
+        );
+        const withAddresses = await Promise.all(
+          valid.map(async t => {
+            const [orig, dest] = await Promise.all([
+              t.rute?.origin?.coordinates ? reverseGeocodeOSM(t.rute.origin.coordinates) : { display_name: '' },
+              t.rute?.destination?.coordinates ? reverseGeocodeOSM(t.rute.destination.coordinates) : { display_name: '' }
+            ]);
+            return {
+              ...t,
+              rute: {
+                ...t.rute,
+                originAddress: orig.display_name,
+                destinationAddress: dest.display_name,
+              },
+            };
+          })
+        );
         if (!mounted) return;
-        setTrips(trips);
+        setTrips(withAddresses);
       } catch (e) {
         // handle error
       } finally {
@@ -84,7 +102,9 @@ export default function DriverHistoryScreen({ navigation, route }) {
             <HistoryCard
               key={trip._id}
               trip={trip}
-              onPress={() => navigation.navigate('TripDetailsScreen', { tripId: trip._id })}
+              onPress={() =>
+                navigation.navigate('TripDetailsScreen', { tripId: trip._id, trip })
+              }
             />
           ))}
           {!collapsed[section] && items.length === 0 && (
@@ -158,6 +178,7 @@ const styles = StyleSheet.create({
   cardTopRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 7 },
   odSection: { flexDirection: 'row', alignItems: 'center', marginTop: 2, marginBottom: 2 },
   address: { fontWeight: 'bold', color: '#28355d', fontSize: 16, marginLeft: 7 },
+  dateText: { fontWeight: 'bold', color: '#28355d', fontSize: 15 },
   bottomGray: {
     backgroundColor: '#f2f3f7', borderRadius: 10, padding: 8, flexDirection: 'row',
     alignItems: 'center', marginTop: 15, justifyContent: 'center'

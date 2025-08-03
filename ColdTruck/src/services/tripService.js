@@ -43,4 +43,11 @@ export async function fetchTripsForDriver(idDriver) {
   });
 
   return trips;
+  }
+
+export async function fetchDriverHistoryTrips(idDriver) {
+  const res = await fetch(`${conexion}/trip/driver/${idDriver}`);
+  if (!res.ok) throw new Error('No se pudieron obtener los viajes');
+  const data = await res.json();
+  return Array.isArray(data) ? data : [];
 }

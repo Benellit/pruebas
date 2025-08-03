@@ -19,10 +19,33 @@ import HomeScreen from './src/screens/Home/HomeScreen';
 import RoutesScreen from './src/screens/Routes/RoutesScreen';
 import TrucksScreen from './src/screens/Trucks/TrucksScreen';
 import NotificationsScreen from './src/screens/Notifications/NotificationsScreen';
+import DriverHistoryScreen from './src/screens/Routes/DriverHistoryScreen';
+import TripDetailsScreen from './src/screens/Routes/TripDetailsScreen';
 import UsersScreen from './src/screens/Users/UsersScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
+const RoutesStack = createStackNavigator();
+
+const RoutesStackScreen = () => (
+  <RoutesStack.Navigator>
+    <RoutesStack.Screen
+      name="RoutesScreen"
+      component={RoutesScreen}
+      options={{ headerShown: false }}
+    />
+    <RoutesStack.Screen
+      name="DriverHistoryScreen"
+      component={DriverHistoryScreen}
+      options={{ title: 'Historial de viajes' }}
+    />
+    <RoutesStack.Screen
+      name="TripDetailsScreen"
+      component={TripDetailsScreen}
+      options={{ title: 'Detalle del viaje' }}
+    />
+  </RoutesStack.Navigator>
+);
 
 const AppTabs = () => {
   const { role } = useContext(AuthContext);
@@ -49,7 +72,7 @@ const AppTabs = () => {
       })}
     >
       <Tab.Screen name="Home" component={HomeScreen} initialParams={{ role }} />
-      <Tab.Screen name="Routes" component={RoutesScreen} initialParams={{ role }} />
+      <Tab.Screen name="Routes" component={RoutesStackScreen} initialParams={{ role }} />
       <Tab.Screen name="Trucks" component={TrucksScreen} initialParams={{ role }} />
       <Tab.Screen name="Users" component={UsersScreen} initialParams={{ role }} />
     </Tab.Navigator>

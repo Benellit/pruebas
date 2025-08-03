@@ -122,11 +122,8 @@ export default function RoutesScreen() {
   }, [routeMarkers]);
 
   // Botón azul: activa modo ruta
-  const handleRutaBtn = () => {
-    setIsRouteMode(true);
-    setRouteMarkers([]);
-    setRoute([]);
-    Alert.alert("API Ruta optimizada", "Toca dos puntos en el mapa para trazar la ruta.");
+  const handleHistoryPress = () => {
+    navigation.navigate('DriverHistoryScreen', { driverId: user?.id });
   };
 
 const showAssignedRoute = async (originCoords, destinationCoords) => {
@@ -495,12 +492,12 @@ const startNavigation = async (tripId, originCoords, destinationCoords) => {
           <MaterialIcons name="share-location" size={48} color={t.blueFabIcon} />
         </TouchableOpacity>
 
-
-
-
-        <TouchableOpacity style={[styles.historyBtn, { backgroundColor: t.card }]} onPress={handleRutaBtn}>
-            <Ionicons name="reader" size={30} color={t.text} />
-          </TouchableOpacity>
+       <TouchableOpacity
+          style={[styles.historyBtn, { backgroundColor: t.card }]}
+          onPress={handleHistoryPress}
+        >
+          <Ionicons name="reader" size={30} color={t.text} />
+        </TouchableOpacity>
 
       </View>
 
