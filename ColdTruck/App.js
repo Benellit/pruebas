@@ -6,6 +6,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import FlashMessage from 'react-native-flash-message';
 
 import { AuthProvider, AuthContext } from './src/context/AuthContext';
 
@@ -73,6 +74,7 @@ export default function App() {
       <NavigationContainer>
         <RootNavigator />
       </NavigationContainer>
+      <FlashMessage position="top" />
     </AuthProvider>
   );
 }

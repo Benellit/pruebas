@@ -21,6 +21,8 @@ import ArrowImg from '../../../assets/arrow.png';
 
 
 import CustomMap from '../../components/MapComponents/CustomMap';
+import TrackingButton from '../../components/TrackingButton';
+import { showTrackingMessage } from '../../utils/flashMessage';
 
 const { width, height } = Dimensions.get('window');
 
@@ -81,6 +83,7 @@ export default function RoutesScreen() {
   const [currentPosition, setCurrentPosition] = useState(null);
   const [heading, setHeading] = useState(0);
   const [locationWatcher, setLocationWatcher] = useState(null);
+  const [trackingState, setTrackingState] = useState('inactive');
 
   // ----- Ruta -----
   const [isRouteMode, setIsRouteMode] = useState(false);
@@ -163,7 +166,8 @@ const startNavigation = async (originCoords, destinationCoords) => {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permiso de ubicación denegado');
+        setTrackingState('error');
+        showTrackingMessage('error', 'No se pudo iniciar el seguimiento: permiso de ubicación denegado.');
         return;
       }
 
@@ -233,8 +237,14 @@ const startNavigation = async (originCoords, destinationCoords) => {
 
       setLocationWatcher(watcher);
       setIsNavigating(true);
+    setTrackingState('active');
+      showTrackingMessage('success', 'Navegación iniciada: tu ubicación está siendo monitoreada.');
+      setTimeout(() => {
+        showTrackingMessage('info', 'Puedes cerrar el modo navegación presionando el botón rojo.');
+      }, 3000);
     } catch (err) {
-      Alert.alert('Error', err.message);
+      setTrackingState('error');
+      showTrackingMessage('error', 'No se pudo enviar tu ubicación. Revisa tu conexión.');
     }
   };
 
@@ -262,6 +272,8 @@ const startNavigation = async (originCoords, destinationCoords) => {
     setHeading(0);
     setNavRoute([]);
     setIsNavigating(false);
+    setTrackingState('inactive');
+    showTrackingMessage('info', 'Modo navegación finalizado: ya no se enviarán actualizaciones.');
   };
 
 
@@ -412,9 +424,12 @@ const startNavigation = async (originCoords, destinationCoords) => {
         <TouchableOpacity style={[styles.actionBtn, { backgroundColor: t.card }]} onPress={zoomOut}>
           <FontAwesome6 name="minus" size={24} color={t.icon} />
         </TouchableOpacity>
-        <TouchableOpacity style={[styles.actionBtn, { backgroundColor: t.card }]} onPress={centerOnUser}>
-          <MaterialIcons name="my-location" size={24} color={t.icon} />
-        </TouchableOpacity>
+        <TrackingButton
+          style={[styles.actionBtn, { backgroundColor: t.card }]}
+          trackingState={trackingState}
+          onPress={centerOnUser}
+        />
+
 
 
         <TouchableOpacity
