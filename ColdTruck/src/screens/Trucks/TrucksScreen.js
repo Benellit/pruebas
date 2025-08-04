@@ -335,17 +335,23 @@ const renderTruckCard = ({ item }) => (
     <View style={styles.gridRow}>
       <View style={styles.gridBox}>
         <Text style={styles.label}>Brand</Text>
-        <Text style={styles.value}>{item.brand?.name || item.IDBrand}</Text>
+        <Text style={styles.value}>
+          {item.brand?.name || item.IDBrand?.name || item.IDBrand}
+        </Text>
       </View>
       <View style={styles.gridBox}>
         <Text style={styles.label}>Model</Text>
-        <Text style={styles.value}>{item.model?.name || item.IDModel}</Text>
+        <Text style={styles.value}>
+          {item.model?.name || item.IDModel?.name || item.IDModel}
+        </Text>
       </View>
     </View>
     <View style={styles.gridRow}>
       <View style={styles.gridBox}>
         <Text style={styles.label}>Admin</Text>
-        <Text style={styles.value}>{item.admin?.name || item.IDAdmin}</Text>
+        <Text style={styles.value}>
+          {item.admin?.name || item.IDAdmin?.name || item.IDAdmin}
+        </Text>
       </View>
       <View style={styles.gridBox}>
         <Text style={styles.label}>Load Capacity</Text>

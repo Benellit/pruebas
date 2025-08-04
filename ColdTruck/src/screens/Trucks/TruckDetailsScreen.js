@@ -70,10 +70,19 @@ const TruckDetailsScreen = ({ route }) => {
         <View style={{ padding: 16 }}>
           <Text>Plates: {truck.plates}</Text>
           <Text>Status: {truck.status}</Text>
-          <Text>Brand: {truck.brand?.name ?? truck.IDBrand}</Text>
-          <Text>Model: {truck.model?.name ?? truck.IDModel}</Text>
-          <Text>Cargo Type: {truck.cargoType?.name ?? truck.IDCargoType}</Text>
-          <Text>Admin: {truck.admin?.name ?? truck.IDAdmin}</Text>
+          <Text>
+            Brand: {truck.brand?.name ?? truck.IDBrand?.name ?? truck.IDBrand}
+          </Text>
+          <Text>
+            Model: {truck.model?.name ?? truck.IDModel?.name ?? truck.IDModel}
+          </Text>
+          <Text>
+            Cargo Type:
+            {truck.cargoType?.name ?? truck.IDCargoType?.name ?? truck.IDCargoType}
+          </Text>
+          <Text>
+            Admin: {truck.admin?.name ?? truck.IDAdmin?.name ?? truck.IDAdmin}
+          </Text>
         </View>
       )}
 
