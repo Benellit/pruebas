@@ -467,15 +467,7 @@ const startNavigation = async (tripId, originCoords, destinationCoords) => {
 
 
 
-        <TouchableOpacity
-          style={[styles.truckBtn, { backgroundColor: t.card }]}
-          onPress={() => {
-            setShowRoutesSheet(true);
-            setShowCreateTrip(false);
-          }}>
-          <Octicons name="package-dependents" size={18} color={t.text} style={{ marginRight: 8 }} />
-          <Text style={[styles.truckText, { color: t.text }]}>Overview</Text>
-        </TouchableOpacity>
+        
 
         
 
@@ -543,7 +535,7 @@ const styles = StyleSheet.create({
   },
   rightButtons: {
     position: 'absolute',
-    bottom: 77,
+    bottom: 84,
     right: 10,
     alignItems: 'flex-end',
     gap: 12,
