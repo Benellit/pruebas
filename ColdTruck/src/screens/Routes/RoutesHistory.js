@@ -3,6 +3,7 @@ import { View, Text, FlatList, ActivityIndicator, Alert, TouchableOpacity } from
 import styles from '../shared/mapStyles';
 import { conexion } from '../../../conexion';
 import { fetchTrip } from '../../services/tripService';
+import { fetchTruck } from '../../services/truckService';
 import { AuthContext } from '../../context/AuthContext';
 export default function RoutesHistory({ route }) {
   const [history, setHistory] = useState([]);
@@ -25,7 +26,13 @@ export default function RoutesHistory({ route }) {
             try {
               const tripInfo = await fetchTrip(IDTrip);
               if (tripInfo && String(tripInfo.IDDriver) === String(driverId)) {
-                return [IDTrip, points];
+                let truck = null;
+                if (tripInfo.IDTruck) {
+                  try {
+                    truck = await fetchTruck(tripInfo.IDTruck);
+                  } catch {}
+                }
+                return { IDTrip, points, truckId: tripInfo.IDTruck, truck };
               }
             } catch (e) {
               // ignore fetch errors
@@ -54,12 +61,12 @@ export default function RoutesHistory({ route }) {
       <Text style={{ fontWeight: 'bold', fontSize: 18, marginBottom: 10 }}>Historial de Rutas</Text>
       <FlatList
         data={history}
-        keyExtractor={([IDTrip]) => IDTrip.toString()}
-        renderItem={({ item: [IDTrip, points] }) => (
+        keyExtractor={(item) => item.IDTrip.toString()}
+        renderItem={({ item }) => (
           <TouchableOpacity style={{ padding: 12, borderBottomWidth: 1, borderColor: '#eee' }}>
-            <Text style={{ fontWeight: 'bold' }}>Viaje #{IDTrip}</Text>
-            <Text>Total de puntos: {points.length}</Text>
-            {/* Puedes agregar más detalles aquí */}
+            <Text style={{ fontWeight: 'bold' }}>Viaje #{item.IDTrip}</Text>
+            <Text>Camión: {item.truckId} - {item.truck?.plates || 'Sin placas'}</Text>
+            <Text>Total de puntos: {item.points.length}</Text>
           </TouchableOpacity>
         )}
       />

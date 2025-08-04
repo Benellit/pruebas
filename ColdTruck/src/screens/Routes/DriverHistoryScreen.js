@@ -4,6 +4,9 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator
 import { MaterialIcons, FontAwesome, MaterialCommunityIcons } from '@expo/vector-icons';
 import { fetchDriverHistoryTrips } from '../../services/tripService';
 import { fetchRute } from '../../services/ruteService';
+import { fetchTruck } from '../../services/truckService';
+import { fetchUser } from '../../services/userService';
+import { fetchCargoType } from '../../services/cargoTypeService';
 import { reverseGeocodeOSM } from '../../services/geocodeService';
 import { formatShortDate } from '../../utils/dateUtils'; // Ajusta si tu formato incluye hora, si no te paso uno
 import dayjs from 'dayjs';
@@ -71,16 +74,33 @@ export default function DriverHistoryScreen({ navigation, route }) {
                 // ignore
               }
             }
-            const [orig, dest] = await Promise.all([
-              rute?.origin?.coordinates
-                ? reverseGeocodeOSM(rute.origin.coordinates)
-                : { street: '', locality: '', city: '' },
-              rute?.destination?.coordinates
-                ? reverseGeocodeOSM(rute.destination.coordinates)
-                : { street: '', locality: '', city: '' }
+            const originPromise = rute?.origin?.coordinates
+              ? reverseGeocodeOSM(rute.origin.coordinates)
+              : Promise.resolve({ street: '', locality: '', city: '' });
+            const destPromise = rute?.destination?.coordinates
+              ? reverseGeocodeOSM(rute.destination.coordinates)
+              : Promise.resolve({ street: '', locality: '', city: '' });
+            const truckPromise = t.IDTruck
+              ? fetchTruck(t.IDTruck).catch(() => null)
+              : Promise.resolve(null);
+            const adminPromise = t.IDAdmin
+              ? fetchUser(t.IDAdmin).catch(() => null)
+              : Promise.resolve(null);
+            const cargoPromise = t.IDCargoType
+              ? fetchCargoType(t.IDCargoType).catch(() => null)
+              : Promise.resolve(null);
+            const [orig, dest, truck, admin, cargoType] = await Promise.all([
+              originPromise,
+              destPromise,
+              truckPromise,
+              adminPromise,
+              cargoPromise,
             ]);
             return {
               ...t,
+              truck,
+              admin,
+              cargoType,
               rute: {
                 ...(rute || {}),
                 originAddr: orig,
@@ -180,6 +200,8 @@ function HistoryCard({ trip, onPress }) {
           </View>
         </View>
       </View>
+      <Text style={styles.assignText}>Asignado por: {trip.admin?.name || 'Desconocido'}</Text>
+      <Text style={styles.cargoText}>Tipo de carga: {trip.cargoType?.name || 'N/A'}</Text>
       {/* Abajo: placas y ID camión */}
       <View style={styles.bottomGray}>
         <MaterialIcons name="local-shipping" size={18} color="#888" />
@@ -304,6 +326,17 @@ const styles = StyleSheet.create({
     color: '#888',
     fontSize: 14.4,
     fontWeight: '500'
+  },
+  assignText: {
+    color: '#4e659c',
+    fontSize: 14,
+    marginTop: 8
+  },
+  cargoText: {
+    color: '#1976D2',
+    fontSize: 13.2,
+    marginTop: 2,
+    fontWeight: 'bold'
   },
   // Badge
   badge: {
