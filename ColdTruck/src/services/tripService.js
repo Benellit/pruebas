@@ -99,3 +99,29 @@ export async function fetchDriverHistoryTrips(idDriver) {
   const data = JSON.parse(raw);
   return Array.isArray(data) ? data : [];
 }
+
+// Inicia un viaje y marca los recursos relacionados como "OnTrip"
+export async function startTripRequest(tripId) {
+  const res = await fetch(`${conexion}/trip/start`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ tripId }),
+  });
+  const raw = await res.text();
+  console.log('startTripRequest:', res.status, raw);
+  if (!res.ok) throw new Error(raw || 'No se pudo iniciar el trip');
+  return JSON.parse(raw);
+}
+
+// Finaliza un viaje y devuelve los recursos a estado "Available"
+export async function finishTripRequest(tripId) {
+  const res = await fetch(`${conexion}/trip/finish`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ tripId }),
+  });
+  const raw = await res.text();
+  console.log('finishTripRequest:', res.status, raw);
+  if (!res.ok) throw new Error(raw || 'No se pudo finalizar el trip');
+  return JSON.parse(raw);
+}

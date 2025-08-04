@@ -8,7 +8,8 @@ import Octicons from '@expo/vector-icons/Octicons';
 import { useNavigation, useIsFocused } from '@react-navigation/native';
 import * as Location from 'expo-location';
 import { Marker, Polyline } from 'react-native-maps';
-import { fetchRoute } from '../../services/routeService'; 
+import { fetchRoute } from '../../services/routeService';
+import { startTripRequest, finishTripRequest } from '../../services/tripService';
 import FloatingSearchBar from './FloatingSearchBar';
 import CreateTripSheet from './CreateTripSheet';
 import RoutesSheet from './RoutesSheet';
@@ -98,6 +99,7 @@ export default function RoutesScreen() {
   const [autoRoute, setAutoRoute] = useState([]);
   const [navRoute, setNavRoute] = useState([]);
   const [showCreateTrip, setShowCreateTrip] = useState(false);
+  const [activeTripId, setActiveTripId] = useState(null);
 
 
   // Presionar el mapa para marcar puntos (solo en modo ruta)
@@ -184,6 +186,14 @@ const startNavigation = async (tripId, originCoords, destinationCoords) => {
         return;
       }
 
+      try {
+        await startTripRequest(tripId);
+        setActiveTripId(tripId);
+      } catch (err) {
+        setTrackingState('error');
+        showTrackingMessage('error', 'No se pudo iniciar el viaje.');
+        return;
+      }
       const initial = await Location.getCurrentPositionAsync({});
       const { latitude, longitude, heading: hdg } = initial.coords;
       const currPos = { latitude, longitude };
@@ -273,7 +283,7 @@ const startNavigation = async (tripId, originCoords, destinationCoords) => {
     }
   };
 
-  const stopNavigation = useCallback(() => {
+  const stopNavigation = useCallback(async () => {
     const wasNavigating = isNavigating; // Guarda el estado actual antes de limpiar
 
     if (locationWatcher.current) {
@@ -298,11 +308,20 @@ const startNavigation = async (tripId, originCoords, destinationCoords) => {
     setIsNavigating(false);
     setTrackingState('inactive');
 
+    if (activeTripId) {
+      try {
+        await finishTripRequest(activeTripId);
+      } catch (err) {
+        console.error(err);
+      }
+      setActiveTripId(null);
+    }
+
     // SOLO muestra el mensaje si SÍ estaba en navegación
     if (wasNavigating) {
       showTrackingMessage('info', 'Modo navegación finalizado: ya no se enviarán actualizaciones.');
     }
-}, [currentPosition, zoom, isNavigating]);
+}, [currentPosition, zoom, isNavigating, activeTripId]);
 
 
 
