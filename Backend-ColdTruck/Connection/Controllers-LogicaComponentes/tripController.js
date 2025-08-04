@@ -1,5 +1,15 @@
+const mongoose = require('mongoose');
 const Trip = require('../../models-EsquemasMongoDB/Trip');
+require('../../models-EsquemasMongoDB/Alert');
+const Usuario = require('../../models-EsquemasMongoDB/Usuario');
+const Truck = require('../../models-EsquemasMongoDB/Truck');
 
+let Box;
+try {
+  Box = require('../../models-EsquemasMongoDB/Box');
+} catch (err) {
+  Box = null;
+}
 // obtener un trip por su ID ()
 exports.obtenerTrip = async (req, res) => {
   try {
@@ -12,6 +22,121 @@ exports.obtenerTrip = async (req, res) => {
   }
 };
 
+// Inicia un viaje y cambia el estado de los recursos relacionados a "OnTrip"
+exports.startTrip = async (req, res) => {
+  const tripId = Number(req.body.tripId);
+  if (isNaN(tripId)) {
+    return res.status(400).json({ msg: 'Invalid trip ID' });
+  }
+
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    const trip = await Trip.findById(tripId).session(session);
+    if (!trip) {
+      await session.abortTransaction();
+      return res.status(404).json({ msg: 'Trip not found' });
+    }
+
+    const driver = await Usuario.findById(trip.IDDriver).session(session);
+    const truck = await Truck.findById(trip.IDTruck).session(session);
+    let box = null;
+    if (Box && trip.IDBox != null) {
+      box = await Box.findById(trip.IDBox).session(session);
+    }
+
+    if (!driver || !truck || (trip.IDBox != null && Box && !box)) {
+      await session.abortTransaction();
+      return res.status(404).json({ msg: 'Related resource not found' });
+    }
+
+    if (
+      driver.status === 'OnTrip' ||
+      truck.status === 'OnTrip' ||
+      (box && box.status === 'OnTrip')
+    ) {
+      await session.abortTransaction();
+      return res
+        .status(400)
+        .json({ msg: 'User, truck or box already on trip' });
+    }
+
+    trip.status = 'OnTrip';
+    await trip.save({ session });
+
+    driver.status = 'OnTrip';
+    await driver.save({ session });
+
+    truck.status = 'OnTrip';
+    await truck.save({ session });
+
+    if (box) {
+      box.status = 'OnTrip';
+      await box.save({ session });
+    }
+
+    await session.commitTransaction();
+    res.json({ msg: 'Trip started successfully' });
+  } catch (err) {
+    await session.abortTransaction();
+    console.error(err);
+    res.status(500).json({ msg: 'Server error' });
+  } finally {
+    session.endSession();
+  }
+};
+
+// Finaliza un viaje y revierte los estados a "Available"
+exports.finishTrip = async (req, res) => {
+  const tripId = Number(req.body.tripId);
+  if (isNaN(tripId)) {
+    return res.status(400).json({ msg: 'Invalid trip ID' });
+  }
+
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    const trip = await Trip.findById(tripId).session(session);
+    if (!trip) {
+      await session.abortTransaction();
+      return res.status(404).json({ msg: 'Trip not found' });
+    }
+
+    const driver = await Usuario.findById(trip.IDDriver).session(session);
+    const truck = await Truck.findById(trip.IDTruck).session(session);
+    let box = null;
+    if (Box && trip.IDBox != null) {
+      box = await Box.findById(trip.IDBox).session(session);
+    }
+
+    trip.status = 'Finished';
+    await trip.save({ session });
+
+    if (driver) {
+      driver.status = 'Available';
+      await driver.save({ session });
+    }
+
+    if (truck) {
+      truck.status = 'Available';
+      await truck.save({ session });
+    }
+
+    if (box) {
+      box.status = 'Available';
+      await box.save({ session });
+    }
+
+    await session.commitTransaction();
+    res.json({ msg: 'Trip finished successfully' });
+  } catch (err) {
+    await session.abortTransaction();
+    console.error(err);
+    res.status(500).json({ msg: 'Server error' });
+  } finally {
+    session.endSession();
+  }
+};
 
 // Obtener  los trips de un conductor por su IDDriver
 exports.obtenerTripPorDriver = async (req, res) => {
