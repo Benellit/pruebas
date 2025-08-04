@@ -350,7 +350,15 @@ const renderTruckCard = ({ item }) => (
       <View style={styles.gridBox}>
         <Text style={styles.label}>Admin</Text>
         <Text style={styles.value}>
-          {item.admin?.name || item.IDAdmin?.name || item.IDAdmin}
+                    {item.admin
+            ? [item.admin.name, item.admin.lastName, item.admin.secondLastName]
+                .filter(Boolean)
+                .join(' ')
+            : item.IDAdmin?.name
+            ? [item.IDAdmin.name, item.IDAdmin.lastName, item.IDAdmin.secondLastName]
+                .filter(Boolean)
+                .join(' ')
+            : item.IDAdmin}
         </Text>
       </View>
       <View style={styles.gridBox}>

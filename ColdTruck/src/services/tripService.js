@@ -65,6 +65,12 @@ export async function fetchTripsForTruck(idTruck) {
     }
   }
 
+    // Asegura que el camión incluya la información del administrador
+  if (truckData && trips.length > 0 && trips[0].admin) {
+    truckData.admin = trips[0].admin;
+  }
+
+
   // Une todas las alertas
   const alerts = trips
     .flatMap(trip =>

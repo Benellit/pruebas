@@ -81,7 +81,20 @@ const TruckDetailsScreen = ({ route }) => {
             {truck.cargoType?.name ?? truck.IDCargoType?.name ?? truck.IDCargoType}
           </Text>
           <Text>
-            Admin: {truck.admin?.name ?? truck.IDAdmin?.name ?? truck.IDAdmin}
+            Admin:
+            {truck.admin
+              ? [truck.admin.name, truck.admin.lastName, truck.admin.secondLastName]
+                  .filter(Boolean)
+                  .join(' ')
+              : truck.IDAdmin?.name
+              ? [
+                  truck.IDAdmin.name,
+                  truck.IDAdmin.lastName,
+                  truck.IDAdmin.secondLastName,
+                ]
+                  .filter(Boolean)
+                  .join(' ')
+              : truck.IDAdmin}
           </Text>
         </View>
       )}

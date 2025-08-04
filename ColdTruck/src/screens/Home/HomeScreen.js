@@ -73,8 +73,8 @@ export default function HomeScreen({ navigation }) {
   }, [user]);
 
   
-  const validTrips = getValidTrips(trips); 
-  const nextTrip = validTrips[0]; 
+  const validTrips = getValidTrips(trips, { includeCompleted: true });
+  const nextTrip = getValidTrips(trips)[0];
   const filtered = validTrips.filter(trip =>
   tab === 'all'
     ? true
