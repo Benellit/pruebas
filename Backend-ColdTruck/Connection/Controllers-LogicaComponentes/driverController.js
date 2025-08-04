@@ -16,17 +16,17 @@ exports.getDriverTruck = async (req, res) => {
       return res.status(404).json({ msg: 'No truck assigned to this driver' });
 
     // Busca el camión
-    const truck = await Truck.findOne({ number: userTruck.IDTruck });
+    const truck = await Truck.findById(userTruck.IDTruck);
     if (!truck)
       return res.status(404).json({ msg: 'Truck not found' });
 
     // Marca y modelo
-    const brand = await Brand.findOne({ number: truck.IDBrand });
-    const model = await Model.findOne({ number: truck.IDModel });
+    const brand = await Brand.findById(truck.IDBrand);
+    const model = await Model.findById(truck.IDModel);
 
     // Retorna detalles relevantes
     res.json({
-      truckNumber: truck.number,
+      truckNumber: truck._id,
       plates: truck.plates,
       status: truck.status,
       loadCapacity: truck.loadCapacity,
