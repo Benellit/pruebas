@@ -1,36 +1,53 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, TouchableOpacity, FlatList } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  FlatList,
+  ActivityIndicator,
+} from 'react-native';
 import { fetchTripsForTruck } from '../../services/tripService';
-import { fetchTruck } from '../../services/truckService';
 
 const TruckDetailsScreen = ({ route }) => {
   const { truckId } = route.params;
   const [activeTab, setActiveTab] = useState('General');
   const [truck, setTruck] = useState(null);
-  const [trips, setTrips] = useState([]);
   const [alerts, setAlerts] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function load() {
       try {
-        const { trips: tripsData, alerts: alertsData } = await fetchTripsForTruck(truckId);
-        setTrips(tripsData);
-        setAlerts(alertsData);
-        const truckData = await fetchTruck(truckId);
+        setLoading(true);
+        const { truck: truckData, alerts: alertsData } = await fetchTripsForTruck(
+          truckId,
+        );
         setTruck(truckData);
+        setAlerts(alertsData);
       } catch (err) {
         console.error('Error cargando datos del camión', err);
+      } finally {
+        setLoading(false);
       }
     }
     load();
   }, [truckId]);
 
-  const currentTrip = useMemo(() => {
-    if (!trips.length) return null;
-    const active = trips.find(t => t.status === 'OnTrip' || t.status === 'Active');
-    if (active) return active;
-    return [...trips].sort((a, b) => new Date(b.scheduledDepartureDate) - new Date(a.scheduledDepartureDate))[0];
-  }, [trips]);
+  if (loading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
+
+  if (!truck) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <Text>No data</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={{ flex: 1 }}>
@@ -49,35 +66,46 @@ const TruckDetailsScreen = ({ route }) => {
         </TouchableOpacity>
       </View>
 
-      {activeTab === 'General' && truck && (
+      {activeTab === 'General' && (
         <View style={{ padding: 16 }}>
           <Text>Plates: {truck.plates}</Text>
-          <Text>Status: {currentTrip?.status || truck.status}</Text>
+          <Text>Status: {truck.status}</Text>
           <Text>Brand: {truck.brand?.name ?? truck.IDBrand}</Text>
           <Text>Model: {truck.model?.name ?? truck.IDModel}</Text>
+          <Text>Cargo Type: {truck.cargoType?.name ?? truck.IDCargoType}</Text>
           <Text>Admin: {truck.admin?.name ?? truck.IDAdmin}</Text>
         </View>
       )}
 
       {activeTab === 'Alerts' && (
-        <FlatList
-          data={alerts}
-          keyExtractor={(item) => item._id.toString()}
-          renderItem={({ item }) => (
-            <View style={{ padding: 16, borderBottomWidth: 1, borderColor: '#eee' }}>
-              <Text>{item.type}</Text>
-              <Text>{item.description}</Text>
-              <Text>
-                {item.value}
-                {item.valueLabel}
-              </Text>
-              <Text>{new Date(item.dateTime).toLocaleString()}</Text>
-              <Text>
-                Trip: {item.tripId} - {item.truckPlates}
-              </Text>
-            </View>
-          )}
-        />
+        alerts.length === 0 ? (
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+            <Text>No alerts found</Text>
+          </View>
+        ) : (
+          <FlatList
+            data={alerts}
+            keyExtractor={item => item._id.toString()}
+            renderItem={({ item }) => (
+              <View
+                style={{ padding: 16, borderBottomWidth: 1, borderColor: '#eee' }}
+              >
+                <Text>{item.type}</Text>
+                <Text>{item.description}</Text>
+                {item.value != null && (
+                  <Text>
+                    {item.value}
+                    {item.valueLabel}
+                  </Text>
+                )}
+                <Text>{new Date(item.dateTime).toLocaleString()}</Text>
+                <Text>
+                  Trip: {item.tripId} - {item.truckPlates}
+                </Text>
+              </View>
+            )}
+          />
+        )
       )}
     </View>
   );
