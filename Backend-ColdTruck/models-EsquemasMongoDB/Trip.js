@@ -17,11 +17,11 @@ const tripSchema = new mongoose.Schema({
   estimatedDistance: Number,
   status: String,
   IDDriver: Number,
-  IDAdmin: Number,
+   IDAdmin: { type: Number, ref: 'Usuario' },
   IDBox: Number,
   IDRute: Number,
-  IDTruck: Number,
-  IDCargoType: Number,
+  IDTruck: { type: Number, ref: 'Truck' },
+  IDCargoType: { type: Number, ref: 'CargoType' },
   alerts: [alertSchema],
 });
 

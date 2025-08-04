@@ -1,4 +1,5 @@
 import { conexion } from '../../conexion';
+import { fetchTruck } from './truckService';
 
 export async function fetchTrip(id) {
   const res = await fetch(`${conexion}/trip/${Number(id)}`);
@@ -55,8 +56,14 @@ export async function fetchTripsForTruck(idTruck) {
   if (!res.ok) throw new Error(raw || 'No se pudieron obtener los datos del camión');
   const trips = JSON.parse(raw);
 
-  // Encuentra un trip que tenga la propiedad 'truck' o usa el primer trip
-  const truckData = trips.length > 0 ? (trips[0].truck || trips[0].IDTruck || {}) : null;
+   let truckData = trips.length > 0 ? trips[0].truck : null;
+  if (!truckData && trips.length > 0 && trips[0].IDTruck) {
+    try {
+      truckData = await fetchTruck(trips[0].IDTruck);
+    } catch (e) {
+      truckData = null;
+    }
+  }
 
   // Une todas las alertas
   const alerts = trips
@@ -69,7 +76,7 @@ export async function fetchTripsForTruck(idTruck) {
         valueLabel: alert.temperature != null ? '°C' : alert.humidity != null ? '%' : '',
         dateTime: alert.dateTime,
         tripId: trip._id,
-        truckPlates: truckData.plates || 'N/A',
+        truckPlates: truckData?.plates || 'N/A',
       })),
     )
     .sort((a, b) => new Date(b.dateTime) - new Date(a.dateTime));

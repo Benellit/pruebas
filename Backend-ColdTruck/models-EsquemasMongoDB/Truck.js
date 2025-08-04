@@ -5,8 +5,8 @@ const truckSchema = new mongoose.Schema({
   plates: String,
   status: String,
   loadCapacity: Number,
-  IDAdmin: Number,
-  IDBrand: Number,
-  IDModel: Number,
+  IDAdmin: { type: Number, ref: 'Usuario' },
+  IDBrand: { type: Number, ref: 'Brand' },
+  IDModel: { type: Number, ref: 'Model' },
 });
 module.exports = mongoose.model('Truck', truckSchema, 'truck');

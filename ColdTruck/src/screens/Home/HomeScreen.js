@@ -1,6 +1,7 @@
 import React, { useContext, useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, FlatList, ActivityIndicator } from 'react-native';
 import { MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AuthContext } from '../../context/AuthContext';
 import { fetchTripsForDriver } from '../../services/tripService';
 import { fetchTruck } from '../../services/truckService';
@@ -8,6 +9,7 @@ import { fetchRute } from '../../services/ruteService';
 import { fetchUser } from '../../services/userService';
 import { fetchCargoType } from '../../services/cargoTypeService';
 import { getValidTrips } from '../../utils/tripUtils';
+import { showTrackingMessage } from '../../utils/flashMessage';
 
 const statusLabels = {
   'Scheduled': 'Scheduled',    
@@ -24,7 +26,21 @@ export default function HomeScreen({ navigation }) {
 
   console.log('user:', user);
 
-  
+  const notifyNewTrips = async (tripsList) => {
+    try {
+      const stored = await AsyncStorage.getItem('seenTripIds');
+      const seenIds = stored ? JSON.parse(stored) : [];
+      const newTrips = tripsList.filter(t => !seenIds.includes(t._id));
+      if (newTrips.length > 0) {
+        newTrips.forEach(t => showTrackingMessage('info', `Nuevo viaje asignado: ${t._id}`));
+        const updated = [...seenIds, ...newTrips.map(t => t._id)];
+        await AsyncStorage.setItem('seenTripIds', JSON.stringify(updated));
+      }
+    } catch (err) {
+      console.error('Error checking new trips', err);
+    }
+  };
+
 
   useEffect(() => {
     if (!user?.id) return;
@@ -48,6 +64,7 @@ export default function HomeScreen({ navigation }) {
           }
         }));
         setTrips(enriched);
+        await notifyNewTrips(enriched);
         console.log('enriched trips:', enriched);
       })
       .catch(() => setTrips([]))

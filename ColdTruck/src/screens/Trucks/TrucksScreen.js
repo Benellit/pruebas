@@ -72,7 +72,7 @@ const TrucksScreen = ({ route }) => {
     async function load() {
       try {
         setLoading(true);
-        const { trips, alerts: alertsData } = await fetchTripsForTruck(truckId);
+        const { truck: truckData, alerts: alertsData } = await fetchTripsForTruck(truckId);
         const enhancedAlerts = alertsData.map((a) => {
           const level = a.valueLabel === '°C' ? 'temperature' : a.valueLabel === '%' ? 'humidity' : null;
           const dateObj = new Date(a.dateTime);
@@ -83,8 +83,7 @@ const TrucksScreen = ({ route }) => {
             date: dateObj.toLocaleString(),
           };
         });
-        const firstTrip = trips && trips.length > 0 ? trips[0] : null;
-        const truckData = firstTrip ? firstTrip.truck || firstTrip.IDTruck : null;
+        
         setTruck(truckData);
         setAlerts(enhancedAlerts);
       } catch (err) {

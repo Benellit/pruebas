@@ -1,5 +1,4 @@
 const Trip = require('../../models-EsquemasMongoDB/Trip');
-const Alert = require('../../models-EsquemasMongoDB/Alert');
 
 // obtener un trip por su ID ()
 exports.obtenerTrip = async (req, res) => {
@@ -59,31 +58,43 @@ exports.obtenerTrips = async (req, res) => {
 exports.obtenerTripsPorTruck = async (req, res) => {
   try {
     const idTruck = Number(req.params.idTruck);
-    const trips = await Trip.find({ IDTruck: idTruck });
-
-    const tripsConAlertas = await Promise.all(
-      trips.map(async (trip) => {
-        const alertas = await Promise.all(
-          trip.alerts.map(async (alerta) => {
-            const detalle = await Alert.findById(alerta.IDAlert).select(
-              'type description'
-            );
-            return {
-              ...alerta.toObject(),
-              alert: detalle
-                ? {
-                    type: detalle.type,
-                    description: detalle.description,
-                  }
-                : null,
-            };
-          })
-        );
-        return { ...trip.toObject(), alerts: alertas };
+    const trips = await Trip.find({ IDTruck: idTruck })
+      .populate({
+        path: 'IDTruck',
+        model: 'Truck',
+        populate: [
+          { path: 'IDBrand', model: 'Brand' },
+          { path: 'IDModel', model: 'Model' },
+          { path: 'IDAdmin', model: 'Usuario' },
+        ],
       })
-    );
+      .populate({ path: 'IDAdmin', model: 'Usuario' })
+      .populate({ path: 'IDCargoType', model: 'CargoType' })
+      .populate({
+        path: 'alerts.IDAlert',
+        model: 'Alert',
+        select: 'type description',
+      })
+      .lean();
 
-    res.json(tripsConAlertas);
+    const tripsConReferencias = trips.map((trip) => ({
+      ...trip,
+      truck: trip.IDTruck,
+      admin: trip.IDAdmin,
+      cargoType: trip.IDCargoType,
+      alerts: (trip.alerts || []).map((alerta) => ({
+        ...alerta,
+        IDAlert: alerta.IDAlert?._id || alerta.IDAlert,
+        alert: alerta.IDAlert
+          ? {
+              type: alerta.IDAlert.type,
+              description: alerta.IDAlert.description,
+            }
+          : null,
+      })),
+    }));
+
+    res.json(tripsConReferencias);
   } catch (err) {
     console.error(err);
     res.status(500).json({ msg: 'Server error' });
