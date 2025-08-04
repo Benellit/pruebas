@@ -1,38 +1,21 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, SafeAreaView, FlatList, ScrollView } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Image,
+  TouchableOpacity,
+  SafeAreaView,
+  FlatList,
+  ActivityIndicator,
+} from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
+import dayjs from 'dayjs';
+import relativeTime from 'dayjs/plugin/relativeTime';
+import { fetchTripsForTruck } from '../../services/tripService';
 
-// --- MOCK DATA (puedes reemplazar por tu fetch real después) ---
-const mockBrands = [
-  { _id: 3, name: 'Freightliner' },
-  { _id: 1, name: 'Kenworth' },
-];
-
-const mockModels = [
-  { _id: 10, name: 'Everest', IDBrand: 3 },
-  { _id: 1, name: 'T680', IDBrand: 1 },
-];
-
-const mockAdmins = [
-  { _id: 5, name: 'Elias Jair Gomez' },
-];
-
-const mockTrucks = [
-  {
-    plates: 'FCX-123-1',
-    status: 'Available',
-    IDBrand: 3,
-    IDModel: 10,
-    IDAdmin: 5,
-    loadCapacity: 4042,
-  },
-];
-
-// Helper para mock: buscar por ID
-const findBrand = (id) => mockBrands.find((b) => b._id === id)?.name || 'N/A';
-const findModel = (id) => mockModels.find((m) => m._id === id)?.name || 'N/A';
-const findAdmin = (id) => mockAdmins.find((u) => u._id === id)?.name || 'N/A';
+dayjs.extend(relativeTime);
 
 const truckImages = {
   Available: require('../../../assets/truck_available.png'),
@@ -53,59 +36,13 @@ const statusColors = {
   Inactive: '#c0392b',
 };
 
-// --- MOCK: Temperatura y Humedad actuales (integra con sensores luego) ---
-const currentTemp = 23;
-const currentHumidity = 51;
+
 const maxTemp = 8;
 const minTemp = -5;
 const maxHum = 90;
 const minHum = 20;
 
-// --- ALERTS MOCK DATA ---
-const alertSummary = {
-  total: 8,
-  temperature: 5,
-  humidity: 3,
-};
-const mockAlerts = [
-  {
-    _id: 1,
-    type: 'High Humidity',
-    level: 'humidity',
-    description: 'Alert for humidity greater than the permitted range.',
-    value: '50.9',
-    valueLabel: '%',
-    timeAgo: '15h ago',
-    date: '8/3/2025, 1:40:40 AM',
-    tripId: 12,
-    truckPlates: 'FCX-123-1',
-  },
-  {
-    _id: 2,
-    type: 'High Temperature',
-    level: 'temperature',
-    description: 'Alert for temperature greater than the permitted range.',
-    value: '29.6',
-    valueLabel: '°C',
-    timeAgo: '16h ago',
-    date: '8/3/2025, 12:32:37 AM',
-    tripId: 12,
-    truckPlates: 'FCX-123-1',
-  },
-  {
-    _id: 3,
-    type: 'High Temperature',
-    level: 'temperature',
-    description: 'Alert for temperature greater than the permitted range.',
-    value: '70',
-    valueLabel: '°C',
-    timeAgo: '1d ago',
-    date: '8/2/2025, 2:25:21 PM',
-    tripId: 12,
-    truckPlates: 'FCX-123-1',
-  },
-  // ...puedes agregar más
-];
+
 
 const alertColors = {
   temperature: {
@@ -123,10 +60,58 @@ const alertColors = {
     label: '#f3b860',
   },
 };
-
-const TruckDetailsScreen = () => {
+const TrucksScreen = ({ route }) => {
   const [activeTab, setActiveTab] = useState('General');
-  const trucks = mockTrucks;
+  const [truck, setTruck] = useState(null);
+  const [alerts, setAlerts] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const truckId = route?.params?.truckId ?? 1;
+
+  useEffect(() => {
+    async function load() {
+      try {
+        setLoading(true);
+        const { truck: truckData, alerts: alertsData } = await fetchTripsForTruck(truckId);
+        const enhancedAlerts = alertsData.map((a) => {
+          const level = a.valueLabel === '°C' ? 'temperature' : a.valueLabel === '%' ? 'humidity' : null;
+          const dateObj = new Date(a.dateTime);
+          return {
+            ...a,
+            level,
+            timeAgo: dayjs(dateObj).fromNow(),
+            date: dateObj.toLocaleString(),
+          };
+        });
+        setTruck(truckData);
+        setAlerts(enhancedAlerts);
+      } catch (err) {
+        console.error('Error cargando datos del camión', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
+  }, [truckId]);
+
+  const alertSummary = {
+    total: alerts.length,
+    temperature: alerts.filter((a) => a.level === 'temperature').length,
+    humidity: alerts.filter((a) => a.level === 'humidity').length,
+  };
+
+  const latestTempAlert = alerts.find((a) => a.level === 'temperature');
+  const latestHumAlert = alerts.find((a) => a.level === 'humidity');
+  const currentTemp = latestTempAlert ? latestTempAlert.value : 0;
+  const currentHumidity = latestHumAlert ? latestHumAlert.value : 0;
+
+  if (loading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -203,12 +188,14 @@ const TruckDetailsScreen = () => {
               </View>
             </View>
             {/* Card del camión */}
-            {trucks.length > 0 && renderTruckCard({ item: trucks[0] })}
+             {truck && renderTruckCard({ item: truck })}
           </>
         )}
 
         {/* ==================== ALERTS TAB ==================== */}
-        {activeTab === 'Alerts' && <TruckAlertsMetrics />}
+        {activeTab === 'Alerts' && (
+          <TruckAlertsMetrics alerts={alerts} summary={alertSummary} />
+        )}
       </View>
     </SafeAreaView>
   );
@@ -216,7 +203,7 @@ const TruckDetailsScreen = () => {
 
 /////////////////////////////////////////////////////////////////////////////////////
 // --- ALERTS TAB ---
-function TruckAlertsMetrics() {
+function TruckAlertsMetrics({ alerts, summary }) {
   return (
     <View style={alertStyles.container}>
       {/* Header/Resumen todo en una tarjeta */}
@@ -231,10 +218,20 @@ function TruckAlertsMetrics() {
       </View>
       {/* Summary Cards van aquí debajo */}
       <View style={alertStyles.alertNumsRow}>
-      <SummaryCard icon="alert" value={alertSummary.total} color="#f76e46" label="Total" />
-      <SummaryCard icon="thermometer" value={alertSummary.temperature} color={alertColors.temperature.icon} label="Temperature" />
-      <SummaryCard icon="water-outline" value={alertSummary.humidity} color={alertColors.humidity.icon} label="Humidity" />
-    </View>
+       <SummaryCard icon="alert" value={summary.total} color="#f76e46" label="Total" />
+        <SummaryCard
+          icon="thermometer"
+          value={summary.temperature}
+          color={alertColors.temperature.icon}
+          label="Temperature"
+        />
+        <SummaryCard
+          icon="water-outline"
+          value={summary.humidity}
+          color={alertColors.humidity.icon}
+          label="Humidity"
+        />
+      </View>
 
 
 
@@ -243,8 +240,8 @@ function TruckAlertsMetrics() {
 
       {/* Lista de alertas */}
       <FlatList
-        data={mockAlerts}
-        keyExtractor={item => item._id.toString()}
+         data={alerts}
+        keyExtractor={(item) => item._id.toString()}
         renderItem={({ item }) => <AlertCard alert={item} />}
         contentContainerStyle={{ paddingBottom: 30, paddingTop: 5 }}
         style={{ flex: 1 }}
@@ -331,17 +328,17 @@ const renderTruckCard = ({ item }) => (
     <View style={styles.gridRow}>
       <View style={styles.gridBox}>
         <Text style={styles.label}>Brand</Text>
-        <Text style={styles.value}>{findBrand(item.IDBrand)}</Text>
+        <Text style={styles.value}>{item.brand?.name || item.IDBrand}</Text>
       </View>
       <View style={styles.gridBox}>
         <Text style={styles.label}>Model</Text>
-        <Text style={styles.value}>{findModel(item.IDModel)}</Text>
+        <Text style={styles.value}>{item.model?.name || item.IDModel}</Text>
       </View>
     </View>
     <View style={styles.gridRow}>
       <View style={styles.gridBox}>
         <Text style={styles.label}>Admin</Text>
-        <Text style={styles.value}>{findAdmin(item.IDAdmin)}</Text>
+        <Text style={styles.value}>{item.admin?.name || item.IDAdmin}</Text>
       </View>
       <View style={styles.gridBox}>
         <Text style={styles.label}>Load Capacity</Text>
@@ -753,4 +750,4 @@ alertValueBadgeUnit: {
   },
 });
 
-export default TruckDetailsScreen;
+export default TrucksScreen;
