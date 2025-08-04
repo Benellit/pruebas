@@ -7,6 +7,9 @@ const alertSchema = new mongoose.Schema({
   humidity: Number
 }, { _id: false });
 
+const TRIP_STATUS = ['Scheduled', 'In Transit', 'Completed', 'Canceled'];
+
+
 const tripSchema = new mongoose.Schema({
   _id: { type: Number, required: true },
   scheduledDepartureDate: Date,
@@ -14,7 +17,7 @@ const tripSchema = new mongoose.Schema({
   actualDepartureDate: Date,
   actualArrivalDate: Date,
   estimatedDistance: Number,
-  status: String,
+  status: { type: String, enum: TRIP_STATUS },
   IDDriver: Number,
   IDAdmin: Number,
   IDBox: Number,

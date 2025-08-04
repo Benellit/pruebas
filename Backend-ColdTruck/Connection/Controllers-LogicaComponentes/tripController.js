@@ -32,8 +32,10 @@ exports.startTrip = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
   try {
+    console.log('Starting trip', tripId);
     const trip = await Trip.findById(tripId).session(session);
     if (!trip) {
+      console.log('Trip not found');
       await session.abortTransaction();
       return res.status(404).json({ msg: 'Trip not found' });
     }
@@ -46,6 +48,11 @@ exports.startTrip = async (req, res) => {
     }
 
     if (!driver || !truck || (trip.IDBox != null && Box && !box)) {
+      console.log('Related resource missing', {
+        hasDriver: !!driver,
+        hasTruck: !!truck,
+        hasBox: !!box,
+      });
       await session.abortTransaction();
       return res.status(404).json({ msg: 'Related resource not found' });
     }
@@ -55,32 +62,45 @@ exports.startTrip = async (req, res) => {
       truck.status === 'OnTrip' ||
       (box && box.status === 'OnTrip')
     ) {
+      console.log('One of the resources is already on trip');
       await session.abortTransaction();
       return res
         .status(400)
         .json({ msg: 'User, truck or box already on trip' });
     }
 
-    trip.status = 'OnTrip';
+    console.log('Updating trip status to OnTrip');
+   trip.status = 'In Transit';
+
     trip.actualDepartureDate = new Date();
     await trip.save({ session });
+    console.log('Trip updated');
 
+    console.log('Updating driver status to OnTrip');
     driver.status = 'OnTrip';
     await driver.save({ session });
+    console.log('Driver updated');
 
+    console.log('Updating truck status to OnTrip');
     truck.status = 'OnTrip';
     await truck.save({ session });
+    console.log('Truck updated');
 
     if (box) {
+      console.log('Updating box status to OnTrip');
       box.status = 'OnTrip';
       await box.save({ session });
+      console.log('Box updated');
     }
 
     await session.commitTransaction();
     res.json({ msg: 'Trip started successfully' });
   } catch (err) {
     await session.abortTransaction();
-    console.error(err);
+    console.error('Error finishing trip:', err.message);
+    if (err.errInfo) {
+      console.error('Validation details:', JSON.stringify(err.errInfo));
+    }
     res.status(500).json({ msg: 'Server error' });
   } finally {
     session.endSession();
@@ -110,7 +130,7 @@ exports.finishTrip = async (req, res) => {
       box = await Box.findById(trip.IDBox).session(session);
     }
 
-     trip.status = 'Completed';
+    trip.status = 'In Transit';
     trip.actualArrivalDate = new Date();
     await trip.save({ session });
 
