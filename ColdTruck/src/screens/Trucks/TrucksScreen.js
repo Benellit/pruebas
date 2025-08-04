@@ -72,7 +72,7 @@ const TrucksScreen = ({ route }) => {
     async function load() {
       try {
         setLoading(true);
-        const { truck: truckData, alerts: alertsData } = await fetchTripsForTruck(truckId);
+        const { trips, alerts: alertsData } = await fetchTripsForTruck(truckId);
         const enhancedAlerts = alertsData.map((a) => {
           const level = a.valueLabel === '°C' ? 'temperature' : a.valueLabel === '%' ? 'humidity' : null;
           const dateObj = new Date(a.dateTime);
@@ -83,6 +83,8 @@ const TrucksScreen = ({ route }) => {
             date: dateObj.toLocaleString(),
           };
         });
+        const firstTrip = trips && trips.length > 0 ? trips[0] : null;
+        const truckData = firstTrip ? firstTrip.truck || firstTrip.IDTruck : null;
         setTruck(truckData);
         setAlerts(enhancedAlerts);
       } catch (err) {
@@ -139,57 +141,63 @@ const TrucksScreen = ({ route }) => {
 
         {/* ==================== GENERAL TAB ==================== */}
         {activeTab === 'General' && (
-          <>
-            {/* MÉTRICAS */}
-            <View style={styles.metricsGrid}>
-              {/* FILA SUPERIOR */}
-              <View style={styles.metricsRow}>
-                {/* Temperature */}
-                <View style={styles.metricSquare}>
-                  <View style={styles.iconCircle}>
-                    <Icon name="thermometer" size={32} color="#8BA0B3" />
+          truck ? (
+            <>
+              {/* MÉTRICAS */}
+              <View style={styles.metricsGrid}>
+                {/* FILA SUPERIOR */}
+                <View style={styles.metricsRow}>
+                  {/* Temperature */}
+                  <View style={styles.metricSquare}>
+                    <View style={styles.iconCircle}>
+                      <Icon name="thermometer" size={32} color="#8BA0B3" />
+                    </View>
+                    <Text style={styles.metricLabelLeft}>Temperature</Text>
+                    <Text style={styles.metricValueLeft}>{currentTemp}°C</Text>
                   </View>
-                  <Text style={styles.metricLabelLeft}>Temperature</Text>
-                  <Text style={styles.metricValueLeft}>{currentTemp}°C</Text>
+                  {/* Humidity */}
+                  <View style={styles.metricSquare}>
+                    <View style={styles.iconCircle}>
+                      <Icon name="water-outline" size={32} color="#8BA0B3" />
+                    </View>
+                    <Text style={styles.metricLabelLeft}>Humidity</Text>
+                    <Text style={styles.metricValueLeft}>{currentHumidity}%</Text>
+                  </View>
                 </View>
-                {/* Humidity */}
-                <View style={styles.metricSquare}>
-                  <View style={styles.iconCircle}>
-                    <Icon name="water-outline" size={32} color="#8BA0B3" />
+                {/* FILA INFERIOR: Max/Min */}
+                <View style={styles.metricsRow}>
+                  {/* Max/Min Temp */}
+                  <View style={styles.metricSquareSmall}>
+                    <View style={styles.rowLabels}>
+                      <Text style={[styles.metricLabelTiny, { color: '#728096' }]}>Max Temp</Text>
+                      <Text style={styles.metricLabelTiny}>Min Temp</Text>
+                    </View>
+                    <View style={styles.rowValues}>
+                      <Text style={[styles.metricValueTiny, { color: '#3e87cfff' }]}>{maxTemp}°C</Text>
+                      <Text style={styles.metricValueTiny}>{minTemp}°C</Text>
+                    </View>
                   </View>
-                  <Text style={styles.metricLabelLeft}>Humidity</Text>
-                  <Text style={styles.metricValueLeft}>{currentHumidity}%</Text>
+                  {/* Max/Min Humidity */}
+                  <View style={styles.metricSquareSmall}>
+                    <View style={styles.rowLabels}>
+                      <Text style={[styles.metricLabelTiny, { color: '#728096' }]}>Max Hum</Text>
+                      <Text style={styles.metricLabelTiny}>Min Hum</Text>
+                    </View>
+                    <View style={styles.rowValues}>
+                      <Text style={[styles.metricValueTiny, { color: '#3e87cfff' }]}>{maxHum}%</Text>
+                      <Text style={styles.metricValueTiny}>{minHum}%</Text>
+                    </View>
+                  </View>
                 </View>
               </View>
-              {/* FILA INFERIOR: Max/Min */}
-              <View style={styles.metricsRow}>
-                {/* Max/Min Temp */}
-                <View style={styles.metricSquareSmall}>
-                  <View style={styles.rowLabels}>
-                    <Text style={[styles.metricLabelTiny, { color: '#728096' }]}>Max Temp</Text>
-                    <Text style={styles.metricLabelTiny}>Min Temp</Text>
-                  </View>
-                  <View style={styles.rowValues}>
-                    <Text style={[styles.metricValueTiny, { color: '#3e87cfff' }]}>{maxTemp}°C</Text>
-                    <Text style={styles.metricValueTiny}>{minTemp}°C</Text>
-                  </View>
-                </View>
-                {/* Max/Min Humidity */}
-                <View style={styles.metricSquareSmall}>
-                  <View style={styles.rowLabels}>
-                    <Text style={[styles.metricLabelTiny, { color: '#728096' }]}>Max Hum</Text>
-                    <Text style={styles.metricLabelTiny}>Min Hum</Text>
-                  </View>
-                  <View style={styles.rowValues}>
-                    <Text style={[styles.metricValueTiny, { color: '#3e87cfff' }]}>{maxHum}%</Text>
-                    <Text style={styles.metricValueTiny}>{minHum}%</Text>
-                  </View>
-                </View>
-              </View>
+              {/* Card del camión */}
+              {renderTruckCard({ item: truck })}
+            </>
+          ) : (
+            <View style={styles.noDataContainer}>
+              <Text style={styles.noDataText}>Sin datos</Text>
             </View>
-            {/* Card del camión */}
-             {truck && renderTruckCard({ item: truck })}
-          </>
+          )
         )}
 
         {/* ==================== ALERTS TAB ==================== */}
@@ -399,6 +407,15 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     padding: 16,
+  },
+   noDataContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  noDataText: {
+    fontSize: 16,
+    color: '#49505eff',
   },
   // ----- MÉTRICAS CARDS -----
   metricsGrid: {

@@ -5,23 +5,12 @@ const {
   obtenerTrips,
   obtenerTripsPorTruck,
 } = require('../Connection/Controllers-LogicaComponentes/tripController');
-const Trip = require('../models-EsquemasMongoDB/Trip');
 
 const router = express.Router();
 
-router.get('/', async (req, res) => {
-  if (req.query.IDDriver) {
-    const trips = await Trip.find({ IDDriver: Number(req.query.IDDriver) }).sort({
-      scheduledDepartureDate: -1,
-    });
-    return res.json(trips);
-  }
-  res.status(400).json({ msg: 'Parámetro requerido' });
-});
-
-router.get('/', obtenerTrips);
-router.get('/driver/:idDriver', obtenerTripPorDriver);
-router.get('/truck/:idTruck', obtenerTripsPorTruck);
-router.get('/:id', obtenerTrip);
+router.get('/', obtenerTrips);                          // /trip?IDDriver=...
+router.get('/driver/:idDriver', obtenerTripPorDriver);  // /trip/driver/...
+router.get('/truck/:idTruck', obtenerTripsPorTruck);    // /trip/truck/...
+router.get('/:id', obtenerTrip);                        // /trip/:id
 
 module.exports = router;
