@@ -1,5 +1,10 @@
 const express = require('express');
-const { obtenerTrip, obtenerTripPorDriver, obtenerTrips } = require('../Connection/Controllers-LogicaComponentes/tripController');
+const {
+  obtenerTrip,
+  obtenerTripPorDriver,
+  obtenerTrips,
+  obtenerTripsPorTruck,
+} = require('../Connection/Controllers-LogicaComponentes/tripController');
 const Trip = require('../models-EsquemasMongoDB/Trip');
 
 const router = express.Router();
@@ -16,6 +21,7 @@ router.get('/', async (req, res) => {
 
 router.get('/', obtenerTrips);
 router.get('/driver/:idDriver', obtenerTripPorDriver);
+router.get('/truck/:idTruck', obtenerTripsPorTruck);
 router.get('/:id', obtenerTrip);
 
 module.exports = router;

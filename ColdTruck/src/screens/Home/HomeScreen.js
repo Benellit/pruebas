@@ -63,8 +63,12 @@ export default function HomeScreen({ navigation }) {
     ? true
     : tab === 'scheduled'
       ? trip.status === 'Scheduled'
-      : trip.status === 'Completed'
+      : tab === 'finished'
+        ? trip.status === 'Completed'
+        : true
 );
+
+
 
 
   return (
@@ -115,7 +119,7 @@ export default function HomeScreen({ navigation }) {
               </View>
               <Text style={styles.cardDest}>{item.rute?.name}</Text>
               <Text style={styles.cardDriver}>Assigned by: {item.admin?.name}</Text>
-              <Text style={styles.cardTemp}>type of load: {item.cargoType?.name}</Text>
+              <Text style={styles.cardTemp}>Type of load: {item.cargoType?.name}</Text>
             </View>
           )}
           ListEmptyComponent={

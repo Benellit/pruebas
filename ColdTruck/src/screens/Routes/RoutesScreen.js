@@ -543,7 +543,7 @@ const styles = StyleSheet.create({
   },
   rightButtons: {
     position: 'absolute',
-    bottom: 90,
+    bottom: 77,
     right: 10,
     alignItems: 'flex-end',
     gap: 12,
@@ -566,7 +566,7 @@ const styles = StyleSheet.create({
   },
   leftButtons: {
     position: 'absolute',
-    bottom: 90,
+    bottom: 77,
     left: 10,
     alignItems: 'flex-start',
     gap: 8,
