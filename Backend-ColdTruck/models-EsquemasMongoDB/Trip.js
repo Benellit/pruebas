@@ -11,6 +11,8 @@ const tripSchema = new mongoose.Schema({
   _id: { type: Number, required: true },
   scheduledDepartureDate: Date,
   scheduledArrivalDate: Date,
+  actualDepartureDate: Date,
+  actualArrivalDate: Date,
   estimatedDistance: Number,
   status: String,
   IDDriver: Number,

@@ -62,6 +62,7 @@ exports.startTrip = async (req, res) => {
     }
 
     trip.status = 'OnTrip';
+    trip.actualDepartureDate = new Date();
     await trip.save({ session });
 
     driver.status = 'OnTrip';
@@ -109,7 +110,8 @@ exports.finishTrip = async (req, res) => {
       box = await Box.findById(trip.IDBox).session(session);
     }
 
-    trip.status = 'Finished';
+     trip.status = 'Completed';
+    trip.actualArrivalDate = new Date();
     await trip.save({ session });
 
     if (driver) {
@@ -207,16 +209,18 @@ exports.obtenerTripsPorTruck = async (req, res) => {
       truck: trip.IDTruck,
       admin: trip.IDAdmin,
       cargoType: trip.IDCargoType,
-      alerts: (trip.alerts || []).map((alerta) => ({
-        ...alerta,
-        IDAlert: alerta.IDAlert?._id || alerta.IDAlert,
-        alert: alerta.IDAlert
-          ? {
-              type: alerta.IDAlert.type,
-              description: alerta.IDAlert.description,
-            }
-          : null,
-      })),
+      alerts: (trip.alerts || [])
+        .filter(a => a.IDAlert != null && a.dateTime != null)
+        .map((alerta) => ({
+          ...alerta,
+          IDAlert: alerta.IDAlert?._id || alerta.IDAlert,
+          alert: alerta.IDAlert
+            ? {
+                type: alerta.IDAlert.type,
+                description: alerta.IDAlert.description,
+              }
+            : null,
+        })),
     }));
 
     res.json(tripsConReferencias);

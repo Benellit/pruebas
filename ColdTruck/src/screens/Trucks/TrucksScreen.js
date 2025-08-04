@@ -250,7 +250,15 @@ function TruckAlertsMetrics({ alerts, summary }) {
          data={alerts}
         keyExtractor={(item) => item._id.toString()}
         renderItem={({ item }) => <AlertCard alert={item} />}
-        contentContainerStyle={{ paddingBottom: 30, paddingTop: 5 }}
+        contentContainerStyle=
+          {alerts.length === 0
+            ? { flexGrow: 1, justifyContent: 'center' }
+            : { paddingBottom: 30, paddingTop: 5 }}
+        ListEmptyComponent={() => (
+          <View style={alertStyles.noAlertsContainer}>
+            <Text style={alertStyles.noAlertsText}>No alerts found</Text>
+          </View>
+        )}
         style={{ flex: 1 }}
         showsVerticalScrollIndicator={false}
       />
@@ -708,6 +716,15 @@ alertNumsRow: {
     shadowOpacity: 0.03,
     shadowRadius: 5,
     elevation: 1,
+  },
+  noAlertsContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  noAlertsText: {
+    fontSize: 16,
+    color: '#49505eff',
   },
   alertRow: {
     flexDirection: 'row',

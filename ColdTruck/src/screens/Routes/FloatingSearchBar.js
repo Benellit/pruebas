@@ -270,7 +270,7 @@ export default function FloatingSearchBar({ onClose, theme = 'light', t }) {
               <View style={[styles.inputFake, { backgroundColor: t.card }]}>
                 <Ionicons name="search" size={22} color={theme === 'dark' ? '#8ec3b9' : '#1976D2'} style={{ marginLeft: 2, marginRight: 8 }} />
                 <Text style={[styles.searchPlaceholder, { color: t.text, opacity: 0.6 }]}>
-                  Busqueda por criterios
+                  Travel list and details
                 </Text>
               </View>
             </TouchableOpacity>
