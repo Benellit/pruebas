@@ -114,8 +114,8 @@ export default function HomeScreen({ navigation }) {
                 </Text>
               </View>
               <Text style={styles.cardDest}>{item.rute?.name}</Text>
-              <Text style={styles.cardDriver}>Asignado por: {item.admin?.name}</Text>
-              <Text style={styles.cardTemp}>Tipo de carga: {item.cargoType?.name}</Text>
+              <Text style={styles.cardDriver}>Assigned by: {item.admin?.name}</Text>
+              <Text style={styles.cardTemp}>type of load: {item.cargoType?.name}</Text>
             </View>
           )}
           ListEmptyComponent={
